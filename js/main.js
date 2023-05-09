@@ -1,4 +1,4 @@
-document.addEventListener('load',loadHashId)
+addEventListener('DOMContentLoaded',loadHashId)
 
 
 function loadHashId(){
