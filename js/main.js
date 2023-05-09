@@ -1,3 +1,6 @@
+document.addEventListener('load',loadHashId)
+
+
 function loadHashId(){
     const hash = location.hash
     if(!hash){ return }
