@@ -28,29 +28,42 @@
         </p>
         <form deer-type="Event" deer-context="http://schema.org">
             <input deer-key="creator" value="mm-prototype" type="hidden">
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" name="name" deer-key="name" class="form-control">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="name">Name</label>
+                    <input type="text" name="name" deer-key="name" class="form-control">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="event-type">Type of Event</label>
+                    <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
+                        <option value="~birth">Birth</option>
+                        <option value="~death">Death</option>
+                        <option value="~performance">Performance</option>
+                        <option value="~publication">Publication</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="event-type">Type of Event</label>
-                <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
-                    <option value="~birth">Birth</option>
-                    <option value="~death">Death</option>
-                    <option value="~performance">Performance</option>
-                    <option value="~publication">Publication</option>
-                </select>
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="associated">Associate personal, corporate, or meeting name</label>
+                    <input type="text" class="form-control" deer-key="associatedWith" name="associated">
+                    <small class="form-text text-muted">This should be an LOC NAR soon</small>
+                    <label for="location">Event location</label>
+                    <input type="text" class="form-control" deer-key="location" name="location">
+                    <small class="form-text text-muted">This should be a GeoNames lookup</small>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="date">Exact date</label>
+                    <input type="date" class="form-control" deer-key="date" name="date">
+                    <label for="startDate">Start date</label>
+                    <input type="date" class="form-control" name="startDate" deer-key="startDate">
+                    <label for="endDate">Start date</label>
+                    <input type="date" class="form-control" name="endDate" deer-key="endDate">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="associated">Associate personal, corporate, or meeting name</label>
-                <input type="text" class="form-control" deer-key="associatedWith" name="associated">
-                <small class="form-text text-muted">This should be an LOC NAR soon</small>
-            </div>
-            <div class="form-group">
-                <label for="location">Event location</label>
-                <input type="text" class="form-control" deer-key="location" name="location">
-                <small class="form-text text-muted">This should be a GeoNames lookup</small>
-            </div>
+
             <button type="submit" class="btn btn-primary">Create Event 📅</button>
         </form>
     </div>
