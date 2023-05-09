@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="js/main.js" type="module"></script>
+    <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script>
+    <title>Enter an Event - Musical Maps of the World</title>
+</head>
+
+<body is="mm-content">
+    <div class="container">
+        <h1>
+            Enter a New Event
+        </h1>
+        <p>
+            Use this form to add a new event to the musical maps.
+            A proper event has an impact on a person or location within
+            this project and has both a time and place. Evidence for these
+            assertions should be included with every entry.
+        </p>
+        <p class="text-info">
+            NB: As a sandbox prototype, all annotations will be created with
+            the same authentication and is subject to revision.
+        </p>
+        <form deer-type="Event" deer-context="http://schema.org">
+            <input deer-key="creator" value="mm-prototype" type="hidden">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" name="name" deer-key="name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="event-type">Type of Event</label>
+                <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
+                    <option value="~birth">Birth</option>
+                    <option value="~death">Death</option>
+                    <option value="~performance">Performance</option>
+                    <option value="~publication">Publication</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Event 📅</button>
+        </form>
+    </div>
+</body>
+
+</html>
