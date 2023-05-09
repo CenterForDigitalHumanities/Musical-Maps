@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="css/main.css">
     <script src="js/main.js" type="module"></script>
     <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script>
     <title>Enter an Event - Musical Maps of the World</title>
@@ -40,6 +40,16 @@
                     <option value="~performance">Performance</option>
                     <option value="~publication">Publication</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="associated">Associate personal, corporate, or meeting name</label>
+                <input type="text" class="form-control" deer-key="associatedWith" name="associated">
+                <small class="form-text text-muted">This should be an LOC NAR soon</small>
+            </div>
+            <div class="form-group">
+                <label for="location">Event location</label>
+                <input type="text" class="form-control" deer-key="location" name="location">
+                <small class="form-text text-muted">This should be a GeoNames lookup</small>
             </div>
             <button type="submit" class="btn btn-primary">Create Event 📅</button>
         </form>
