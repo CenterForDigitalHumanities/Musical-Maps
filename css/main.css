@@ -16,8 +16,25 @@ body[is]{
 
 body[is] > .container {
     box-shadow: var(--dark) 0 0 .68em;
+    min-height: 100vh;
+    margin-bottom: 6em;
 }
 
 h1,h2 {
     font-family: 'Castoro Titling', serif;
+}
+
+header {
+    color: white;
+    text-shadow: 0 0 1.5px black;
+}
+
+h1+small {
+    text-indent: 2em;
+    position: relative;
+    top: -2em;
+}
+
+img.brand {
+    max-height: 3em;
 }
