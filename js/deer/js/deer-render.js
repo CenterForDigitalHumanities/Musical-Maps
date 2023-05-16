@@ -15,8 +15,8 @@ import { default as UTILS } from './deer-utils.js'
 import { default as config } from './deer-config.js'
 
 // import views
-import '../components/view/view.js'
-import '../components/view/entity.js'
+import '/js/deer/components/view/view.js'
+import '/js/deer/components/view/entity.js'
 
 const changeLoader = new MutationObserver(renderChange)
 var DEER = config

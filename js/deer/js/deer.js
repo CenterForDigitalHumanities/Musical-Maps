@@ -23,9 +23,9 @@ if ('serviceWorker' in navigator) {
     }
 } else {
     console.log('Service workers are not supported in this browser.')
-    importScripts('//localhost:5500/js/entities.js')
+    importScripts('/js/deer/js/entities.js')
 }
 
 // Import custom components. The basic view.js is required for rendering.
-import('//localhost:5500/components/view/view.js')
-import('//localhost:5500/components/view/entity.js')
+import('/js/deer/components/view/view.js')
+import('/js/deer/components/view/entity.js')

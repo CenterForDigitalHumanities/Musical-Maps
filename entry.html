@@ -5,13 +5,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
-    <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script>
+    <script src="/js/deer/js/deer.js" type="module"></script>
+    <!-- <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script> -->
     <script src="js/layout.js"></script>
     <title>Musical Maps of the World</title>
 </head>
 <body is="mm-content">
     <div class="container" slot="content">
-        <deer-view id="record"></deer-view>
+        <deer-entity id="record"></deer-entity>
     </div>
     <script>
         let hash = location.hash?.substr(1)
