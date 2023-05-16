@@ -35,16 +35,20 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="name">Name</label>
-                    <input type="text" name="name" deer-key="name" class="form-control">
+                    <input type="text" name="name" deer-key="name" class="form-control" placeholder="Enter a label for this Event">
                 </div>
+
                 <div class="form-group col-md-6">
                     <label for="event-type">Type of Event</label>
-                    <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
-                        <option value="~birth">Birth</option>
-                        <option value="~death">Death</option>
-                        <option value="~performance">Performance</option>
-                        <option value="~publication">Publication</option>
-                    </select>
+                    <div class="input-group">
+                        <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
+                            <option value="~birth">Birth</option>
+                            <option value="~death">Death</option>
+                            <option value="~performance">Performance</option>
+                            <option value="~publication">Publication</option>
+                        </select>
+                        <span class="input-group-text" id="basic-addon1" title="Only predefined Events are available">ℹ</span>                        
+                    </div>
                 </div>
             </div>
 
@@ -54,8 +58,10 @@
                     <input type="text" class="form-control" deer-key="associatedWith" name="associated">
                     <small class="form-text text-muted">This should be an LOC NAR soon</small>
                     <label for="location">Event location</label>
-                    <input type="text" class="form-control" deer-key="location" name="location">
-                    <small class="form-text text-muted">This should be a GeoNames lookup</small>
+                    <div class="input-group">
+                        <input type="text" class="form-control" deer-key="location" name="location">
+                        <span class="input-group-text" id="basic-addon1" title="This will be a GeoNames lookup">ℹ</span>                        
+                    </div>
                 </div>
                 <div class="form-group col-md-6">
                     <label for="date">Exact date</label>
@@ -69,6 +75,10 @@
 
             <button type="submit" class="btn btn-primary">Create Event 📅</button>
         </form>
+
+        <deer-view deer-collection="mm-dev">
+            
+        </deer-view>
     </div>
 </body>
 
