@@ -15,17 +15,18 @@
 // CDN at https://centerfordigitalhumanities.github.io/deer/releases/
 
 // Attach service worker for offline support. 
-if (false && 'serviceWorker' in navigator) {
-    try {
-        navigator.serviceWorker.register('/serviceworker.js')
-    } catch (e) {
-        // Maybe you do not want to use a service worker?
-    }
-} else {
-    console.log('Service workers are not supported in this browser.')
-    importScripts('/js/deer/js/entities.js')
-}
+// if ('serviceWorker' in navigator) {
+//     try {
+//         navigator.serviceWorker.register('/serviceworker.js')
+//     } catch (e) {
+//         // Maybe you do not want to use a service worker?
+//     }
+// } else {
+//    console.log('Service workers are not supported in this browser.')
+    import('/js/deer/js/entities.js')
+// }
 
 // Import custom components. The basic view.js is required for rendering.
 import('/js/deer/components/view/view.js')
+import('/js/deer/components/view/collection.js')
 import('/js/deer/components/view/entity.js')
