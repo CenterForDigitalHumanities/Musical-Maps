@@ -15,7 +15,7 @@
 // CDN at https://centerfordigitalhumanities.github.io/deer/releases/
 
 // Attach service worker for offline support. 
-if ('serviceWorker' in navigator) {
+if (false && 'serviceWorker' in navigator) {
     try {
         navigator.serviceWorker.register('/serviceworker.js')
     } catch (e) {
