@@ -5,6 +5,7 @@
 
 class MmPage extends HTMLBodyElement {
 #template = `
+<style>mm-header{cursor:pointer;}</style>
 <mm-header></mm-header>
 <slot name="content">page content</slot>
 <mm-footer></mm-footer>
@@ -14,6 +15,9 @@ class MmPage extends HTMLBodyElement {
         super()
         this.attachShadow({mode:'open'})
         this.shadowRoot.innerHTML =this.#template
+    }
+    connectedCallback(){
+        this.shadowRoot.querySelector('mm-header').addEventListener('click',()=>location.href='/')
     }
 }
 
