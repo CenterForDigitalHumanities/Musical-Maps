@@ -51,6 +51,23 @@ self.onmessage = message => {
                 })
             }
             break
+        case "render":
+            const id = message.data.entity.id ?? message.data.entity['@id']
+            if (!id) break // Nothing to see here
+            if (!EntityMap.has(id)) {
+                postMessage({
+                    id,
+                    action: "reload",
+                    payload: new Entity(message.data.entity)
+                })
+            } else {
+                postMessage({
+                    id,
+                    action: "update",
+                    payload: EntityMap.get(message.data.id)?.assertions
+                })
+            }
+            break
         case "record":
             break
         default:

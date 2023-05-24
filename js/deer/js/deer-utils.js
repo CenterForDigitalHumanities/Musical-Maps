@@ -128,6 +128,18 @@ const utils = {
         }
         this.worker.postMessage(message)
     },
+    postEntity(entity) {
+        let UTILS = this
+        if (typeof id !== "string") {
+            UTILS.warning("Unable to find URI in object:", entity)
+            return entity
+        }
+        const message = {
+            entity,
+            action: "render"
+        }
+        this.worker.postMessage(message)
+    },
 
     /**
      * Broadcast a message about DEER

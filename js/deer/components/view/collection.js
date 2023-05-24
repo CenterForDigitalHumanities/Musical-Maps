@@ -60,8 +60,8 @@ export default class DeerCollection extends DeerView {
         try {
             listObj["@type"] = list?.[0]["@type"] ?? list?.[0].type ?? "ItemList"
         } catch (err) { }
-        EntityMap.set(listObj.id,listObj)
         this.setAttribute(DEER.ID,listObj.id)
+        UTILS.postEntity(listObj)
     }
 
     constructor() {
