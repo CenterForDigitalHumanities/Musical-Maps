@@ -88,7 +88,7 @@ class Entity extends Object {
             obj["$or"].push(o)
         }
         if(!this.id.startsWith('http')) {
-            return Promise.resolve(EntityMap.get(this.id))
+            return Promise.resolve(this)
         }
         var results = Boolean(withAssertions) ? fetch(DEER.URLS.QUERY,{
             method: "POST",

@@ -130,8 +130,8 @@ const utils = {
     },
     postEntity(entity) {
         let UTILS = this
-        if (typeof id !== "string") {
-            UTILS.warning("Unable to find URI in object:", entity)
+        if (typeof entity !== "object") {
+            UTILS.warning("Cannot recognize object:", entity)
             return entity
         }
         const message = {
