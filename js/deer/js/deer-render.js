@@ -11,15 +11,13 @@
  * @see tiny.rerum.io
  */
 
-import { default as UTILS } from './deer-utils.js'
-import { default as config } from './deer-config.js'
+import { DEER, UTILS } from './deer-utils.js'
 
 // import views
 import '/js/deer/components/view/view.js'
 import '/js/deer/components/view/entity.js'
 
 const changeLoader = new MutationObserver(renderChange)
-var DEER = config
 
 /**
  * Observer callback for rendering newly loaded objects. Checks the
@@ -27,7 +25,7 @@ var DEER = config
  * @param {Array} mutationsList of MutationRecord objects
  */
 async function renderChange(mutationsList) {
-    for (var mutation of mutationsList) {
+    for (const mutation of mutationsList) {
         switch (mutation.attributeName) {
             case DEER.ID:
             case DEER.KEY:
@@ -56,8 +54,8 @@ async function renderChange(mutationsList) {
 
 const RENDER = {}
 RENDER.detectInsertions = elem => {
-    let newViews = (elem.querySelectorAll(config.VIEW).length) ? elem.querySelectorAll(config.VIEW) : []
-    let newForms = (elem.querySelectorAll(config.FORM).length) ? elem.querySelectorAll(config.VIEW) : []
+    let newViews = (elem.querySelectorAll(DEER.VIEW).length) ? elem.querySelectorAll(DEER.VIEW) : []
+    let newForms = (elem.querySelectorAll(DEER.FORM).length) ? elem.querySelectorAll(DEER.VIEW) : []
     if (newForms.length) {
         UTILS.broadcast(undefined, DEER.EVENTS.NEW_FORM, elem, { set: newForms })
     }
@@ -242,9 +240,9 @@ export default class DeerRender {
     constructor(elem, deer = {}) {
         for (let key in DEER) {
             if (typeof DEER[key] === "string") {
-                DEER[key] = deer[key] || config[key]
+                DEER[key] = deer[key] || DEER[key]
             } else {
-                DEER[key] = Object.assign(config[key], deer[key])
+                DEER[key] = Object.assign(DEER[key], deer[key])
             }
         }
         changeLoader.observe(elem, {

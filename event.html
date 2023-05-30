@@ -7,9 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
     <script src="js/main.js" type="module"></script>
-    <!-- <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script> NO FORM SUPPORT -->
-    <!-- <script src="https://centerfordigitalhumanities.github.io/deer/releases/alpha-0.11/deer.js" type="module"></script> -->
-    <script src="js/deer-form.js" type="module"></script>
     <script src="js/layout.js"></script>
     <title>Enter an Event - Musical Maps of the World</title>
 </head>
@@ -77,8 +74,11 @@
             <button type="submit" class="btn btn-primary">Create Event 📅</button>
         </form>
 
-        <deer-view deer-collection="mm-dev" deer-link="entry#">
-        </deer-view>
+        <script src="js/deer/js/deer.js" type="module"></script>
+        <debug class="bg-warning p-2 d-block mt-3">DEBUG: preview collection items...</debug>
+        <deer-collection deer-collection="mm-dev" deer-link="#" deer-list="itemListElement">
+        </deer-collection>
+
     </div>
 </body>
 

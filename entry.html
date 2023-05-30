@@ -6,21 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
     <script src="js/deer/js/deer.js" type="module"></script>
-    <!-- <script src="https://centerfordigitalhumanities.github.io/deer/releases/rc-1.0/js/deer.js"></script> -->
     <script src="js/layout.js"></script>
     <title>Musical Maps of the World</title>
 </head>
 <body is="mm-content">
     <div class="container" slot="content">
-        <deer-entity id="record"></deer-entity>
+        <deer-entity id="record" hash-id></deer-entity>
     </div>
-    <script>
-        let hash = location.hash?.substr(1)
-        const rerumPrefix = "https://devstore.rerum.io/v1/id/"
-        if(hash && !hash.startsWith('http')) { 
-            hash = rerumPrefix+hash
-        }
-        record.setAttribute('deer-id',hash)
-    </script>
 </body>
 </html>
