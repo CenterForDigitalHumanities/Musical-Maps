@@ -77,6 +77,10 @@ export default class DeerReport {
                 action: "view",
                 id: this.id
             })
+            const submitBtn = this.elem.querySelector('button[type="submit"]')
+            if(submitBtn){
+                submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
+            }
             UTILS.worker.addEventListener("message", event => {
                 const obj = event.data.payload
                 if(obj['@id'] !== this.id) { return }
