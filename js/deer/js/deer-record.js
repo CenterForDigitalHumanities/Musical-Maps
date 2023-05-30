@@ -266,13 +266,13 @@ export default class DeerReport {
             .then(entity => {
                 this.elem.setAttribute(DEER.ID, entity["@id"])
                 new DeerReport(this.elem)
-            })
+            }).catch(err=>console.warn(err))
     }
 
     simpleUpsert(event) {
         let record = {}
         //Since this is simple, we don't need to filter around $isDirty.
-        Array.from(this.elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(","))).map(input => {
+        Array.from(this.elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(","))).forEach(input => {
             let key = input.getAttribute(DEER.KEY)
             record[key] = {}
             let val = input.value
