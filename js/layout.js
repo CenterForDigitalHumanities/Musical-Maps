@@ -33,6 +33,23 @@ class MmHeader extends HTMLElement {
         </h1>
         <small>University of Tennessee-Knoxville</small>
     </div>
+    <ul class="container nav justify-content-around flex-column flex-md-row mb-2">
+        <li class="nav-item">
+            <a class="nav-link bg-light" aria-current="page" href="collections.html">View Collections</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link bg-light" aria-current="page" href="event.html">&plus;Event</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link bg-light" href="person.html">&plus;Person</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link bg-light" href="landmark.html">&plus;Landmark</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link bg-light" href="artifact.html">&plus;Artifact</a>
+        </li>
+    </ul>
     </header>
 `
     constructor(){

@@ -71,7 +71,7 @@ class Entity extends Object {
     }
 
     #findAssertions = (assertions) => {
-        var annos = Array.isArray(assertions) ? Promise.resolve(assertions) : findByTargetId(this.id,[],DEER.URLS.QUERY)
+        const annos = Array.isArray(assertions) ? Promise.resolve(assertions) : findByTargetId(this.id,[],DEER.URLS.QUERY)
         return annos
             .then(annotations => annotations.filter(a=>(a.type ?? a['@type'])?.includes("Annotation")).map(anno => new Annotation(anno)))
             .then(newAssertions => newAssertions?.length ? this.#announceUpdate() : this.#announceComplete())
@@ -87,10 +87,10 @@ class Entity extends Object {
             o[target] = this.id
             obj["$or"].push(o)
         }
-        if(!this.id.startsWith('http')) {
+        if(this.id.startsWith('#')) {
             return Promise.resolve(this)
         }
-        var results = Boolean(withAssertions) ? fetch(DEER.URLS.QUERY,{
+        const results = withAssertions ? fetch(DEER.URLS.QUERY,{
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(obj)
@@ -103,8 +103,7 @@ class Entity extends Object {
             if(!Array.isArray(originalObject) && typeof originalObject === "object") {
                 this.data = originalObject
             }
-            withAssertions ? this.#findAssertions(finds) : this.#findAssertions()
-            return
+            return withAssertions ? this.#findAssertions(finds) : this.#findAssertions()
         })
         .catch(err => {
             switch(err.status) {
@@ -126,7 +125,7 @@ class Entity extends Object {
                 payload: this.assertions
             }
         })
-        document.dispatchEvent(updateAnnouncement)
+        self.dispatchEvent(updateAnnouncement)
     }
     #announceNewEntity = () =>{
         const reloadAnnouncement = new CustomEvent("reload", {
@@ -136,7 +135,7 @@ class Entity extends Object {
                 payload: this
             }
         })
-        document.dispatchEvent(reloadAnnouncement)
+        self.dispatchEvent(reloadAnnouncement)
     }
     #announceComplete = () =>{
         const completeAnnouncement = new CustomEvent("complete", {
@@ -145,7 +144,7 @@ class Entity extends Object {
                 id: this.id
             }
         })
-        document.dispatchEvent(completeAnnouncement)
+        self.dispatchEvent(completeAnnouncement)
     }
     #announceError = (err) =>{
         const errorAnnouncement = new CustomEvent("error", {
@@ -155,7 +154,7 @@ class Entity extends Object {
                 payload: err
             }
         })
-        document.dispatchEvent(errorAnnouncement)
+        self.dispatchEvent(errorAnnouncement)
     }
 }
 
@@ -359,19 +358,18 @@ function buildValueObject(val, fromAnno) {
 
 export { EntityMap, Entity, Annotation, objectMatch }
 
-/**
- * Careful with this. It's a global event listener simulation. The `document` object 
- * is not a real DOM element, so it doesn't have a `dispatchEvent` method. If more 
- * than one action type is needed, this should be refactored.
- */
+// When in worker, post events
+const repost = ev=>{
+    try { 
+        if(!window.document) throw new Error()
+    }
+    catch(worker){
+        const {id, action, payload} = ev.detail
+        postMessage({ id, action, payload})
+    }
+}
+self.addEventListener('error',repost)
+self.addEventListener('update',repost)
+self.addEventListener('reload',repost)
+self.addEventListener('complete',repost)
 
-if('undefined' === typeof WorkerGlobalScope) {
-    var document = {}
-     document.dispatchEvent = msg => {
-         const id = msg.detail.id
-         const action = msg.detail.action
-         const payload = msg.detail.payload
-     
-         postMessage({ id, action, payload})
-     }
-} 

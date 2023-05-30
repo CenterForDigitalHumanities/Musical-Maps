@@ -134,6 +134,7 @@ const utils = {
             UTILS.warning("Cannot recognize object:", entity)
             return entity
         }
+        
         const message = {
             entity,
             action: "render"

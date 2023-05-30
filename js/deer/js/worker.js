@@ -64,7 +64,7 @@ self.onmessage = message => {
                 postMessage({
                     id,
                     action: "update",
-                    payload: EntityMap.get(message.data.id)?.assertions
+                    payload: EntityMap.get(id)?.assertions
                 })
             }
             break

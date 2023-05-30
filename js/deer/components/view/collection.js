@@ -14,7 +14,7 @@ import DeerView from './view.js'
 import {Entity, EntityMap, objectMatch} from '../../js/entities.js'
 
 export default class DeerCollection extends DeerView {
-    static get observedAttributes() { return [DEER.ID, DEER.KEY, DEER.LIST, DEER.LINK, DEER.LAZY, DEER.LISTENING]; }
+    static get observedAttributes() { return [DEER.KEY, DEER.LIST, DEER.LINK, DEER.LAZY, DEER.LISTENING]; }
     
     #options = {
         list: this.getAttribute(DEER.LIST),
@@ -53,20 +53,21 @@ export default class DeerCollection extends DeerView {
 
         const listItems = await Promise.all(list).then(res=>res.filter(i => !i.hasOwnProperty("__deleted")))
         const listObj = {
-            id: "dynamic-list-"+this.#options.collection.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0), // quick hash https://stackoverflow.com/users/1568684/lordvlad
+            id: "#list-"+this.#options.collection.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0), // quick hash https://stackoverflow.com/users/1568684/lordvlad
             name: this.#options.collection,
             itemListElement: listItems
         }
         try {
             listObj["@type"] = list?.[0]["@type"] ?? list?.[0].type ?? "ItemList"
         } catch (err) { }
-        this.setAttribute(DEER.ID,listObj.id)
         UTILS.postEntity(listObj)
+        this.setAttribute(DEER.ID,listObj.id)
+        return
     }
 
     constructor() {
         super()
-        this.#loadCollection()
+        this.#loadCollection().catch(err=>console.error(err))
         this.template = DEER.TEMPLATES[this.getAttribute(DEER.TEMPLATE) ?? 'list']
     }
 }
