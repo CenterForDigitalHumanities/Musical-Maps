@@ -74,7 +74,7 @@ class GeoFooter extends HTMLElement {
                 <small>&copy;2022 Research
                 Computing Group</small>
         </a>
-        <a target="_blank" href="http://rerum.io"><img class="brand" alt="Rerum logo"
+        <a target="_blank" href="https://rerum.io"><img class="brand" alt="Rerum logo"
                 src="https://centerfordigitalhumanities.github.io/blog/assets/images/rerum.jpg"><small>RERUM
                 v1</small></a>
     </footer>`

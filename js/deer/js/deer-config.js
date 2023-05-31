@@ -1,5 +1,5 @@
-const base_rr = "http://devstore.rerum.io/v1"   // RERUM store
-const base_tt = "http://tinydev.rerum.io/app"   // Tiny Things  
+const base_rr = "https://devstore.rerum.io/v1"   // RERUM store
+const base_tt = "https://tinydev.rerum.io/app"   // Tiny Things  
 const namespace = "deer"                        // namespace for this projects custom elements
 
 export default {
@@ -59,7 +59,6 @@ export default {
          * Each property must be lower-cased and return a template literal
          * or an HTML String.
          */
-        cat: (obj) => `<h5>${obj.name}</h5><img src="http://placekitten.com/300/150" style="width:100%;">`
     },
 
     version: "1.0.0"
