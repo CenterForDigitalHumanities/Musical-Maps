@@ -33,46 +33,68 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="name">Name</label>
-                    <input type="text" name="name" deer-key="name" class="form-control" placeholder="Enter a label for this Event">
+                    <input type="text" name="name" deer-key="name" class="form-control" placeholder="Enter a label/displayname for this Person">
+                    <small class="form-text text-muted">This name is for internal display</small>
                 </div>
 
                 <div class="form-group col-md-6">
-                    <label for="event-type">Type of Event</label>
-                    <div class="input-group">
-                        <select name="event-type" id="eventType" class="form-control" deer-key="additionalType">
-                            <option value="~birth">Birth</option>
-                            <option value="~death">Death</option>
-                            <option value="~performance">Performance</option>
-                            <option value="~publication">Publication</option>
-                        </select>
-                        <span class="input-group-text" id="basic-addon1" title="Only predefined Events are available">ℹ</span>                        
-                    </div>
+                    <label for="auth-record">Authority Record</label>
+                    <input type="url" class="form-control" deer-key="uri" name="auth-record" placeholder="URI for this person">
+                    <small class="form-text text-muted">TODO: autoload names from resolved link</small>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="hasTeacher">Student Of</label>
+                    <input type="url" class="form-control" deer-key="hasTeacher" name="hasTeacher" placeholder="authority record">
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="hasStudent">Student(s) taught</label>
+                    <input type="url" class="form-control" deer-key="hasStudent" name="hasStudent" placeholder="authority record">
+                    <small class="form-text text-muted">Repeatable soon</small>
                 </div>
             </div>
 
             <div class="row">
                 <div class="form-group col-md-6">
-                    <label for="associated">Associate personal, corporate, or meeting name</label>
-                    <input type="text" class="form-control" deer-key="associatedWith" name="associated">
-                    <small class="form-text text-muted">This should be an LOC NAR soon</small>
-                    <label for="location">Event location</label>
+                    <label for="occupation">Primary Occupation</label>
                     <div class="input-group">
-                        <input type="text" class="form-control" deer-key="location" name="location">
-                        <span class="input-group-text" id="basic-addon1" title="This will be a GeoNames lookup">ℹ</span>                        
-                    </div>
+                        <select name="occupation" multiple id="occupation" class="form-control" deer-key="occupation">
+                            <option value="~piano">Instrumentalist (piano)</option>
+                            <option value="~pedagogue">Pedagogue</option>
+                            <option value="~cobbler">Cobbler</option>
+                        </select>
+                        <span class="input-group-text" id="basic-addon1" title="Only predefined Occupations are available">ℹ</span>                        
+                    </div>   
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="date">Exact date</label>
-                    <input type="date" class="form-control" deer-key="date" name="date">
-                    <label for="startDate">Start date</label>
-                    <input type="date" class="form-control" name="startDate" deer-key="startDate">
-                    <label for="endDate">End date</label>
-                    <input type="date" class="form-control" name="endDate" deer-key="endDate">
+                    <label for="additionalOccupation">Secondary Occupation</label>
+                    <div class="input-group">
+                        <select name="additionalOccupation" multiple id="additionalOccupation" class="form-control" deer-key="additionalOccupation">
+                            <option value="~piano">Instrumentalist (piano)</option>
+                            <option value="~pedagogue">Pedagogue</option>
+                            <option value="~cobbler">Cobbler</option>
+                        </select>
+                        <span class="input-group-text" id="basic-addon1" title="Only predefined Occupations are available">ℹ</span>                        
+                    </div>   
                 </div>
-                <div class="form-group col-md-12">
+            </div>
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="vocalRange">Vocal Range</label>
+                    <select name="vocalRange" multiple id="vocalRange" class="form-control" deer-key="vocalRange">
+                        <option value="~bass">bass</option>
+                        <option value="~baritone">baritone</option>
+                        <option value="~tenor">tenor</option>
+                        <option value="~alto">alto</option>
+                        <option value="~mezzo-soprano">mezzo-soprano</option>
+                        <option value="~soprano">soprano</option>
+                    </select>                </div>   
+                <div class="form-group col-md-6">
                     <label for="evidence">Evidence</label>
                     <input type="text" class="form-control" name="evidence" deer-key="evidence" placeholder="citation">
-                </div>
+                </div>   
             </div>
 
             <button type="submit" class="btn btn-primary">Create Person 👤</button>

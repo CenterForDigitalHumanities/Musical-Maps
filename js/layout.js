@@ -35,7 +35,7 @@ class MmHeader extends HTMLElement {
     </div>
     <ul class="container nav justify-content-around flex-column flex-md-row mb-2">
         <li class="nav-item">
-            <a class="nav-link bg-light" aria-current="page" href="collections.html">View Collections</a>
+            <a class="nav-link bg-light" aria-current="page" href="collections.html">View Collection</a>
         </li>
         <li class="nav-item">
             <a class="nav-link bg-light" aria-current="page" href="event.html">&plus;Event</a>
@@ -44,10 +44,10 @@ class MmHeader extends HTMLElement {
             <a class="nav-link bg-light" href="person.html">&plus;Person</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link bg-light" href="landmark.html">&plus;Landmark</a>
+            <a class="nav-link bg-light disabled" href="landmark.html">&plus;Landmark</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link bg-light" href="artifact.html">&plus;Artifact</a>
+            <a class="nav-link bg-light disabled" href="artifact.html">&plus;Artifact</a>
         </li>
     </ul>
     </header>
