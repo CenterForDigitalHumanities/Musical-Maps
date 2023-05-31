@@ -11,7 +11,6 @@
 import { UTILS, DEER } from '../../js/deer-utils.js'
 import '../templates/default.js'
 import DeerView from './view.js'
-import {Entity, EntityMap, objectMatch} from '../../js/entities.js'
 
 export default class DeerCollection extends DeerView {
     static get observedAttributes() { return [DEER.KEY, DEER.LIST, DEER.LINK, DEER.LAZY, DEER.LISTENING]; }

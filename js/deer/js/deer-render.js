@@ -14,8 +14,8 @@
 import { DEER, UTILS } from './deer-utils.js'
 
 // import views
-import '/js/deer/components/view/view.js'
-import '/js/deer/components/view/entity.js'
+import '../components/view/view.js'
+import '../components/view/entity.js'
 
 const changeLoader = new MutationObserver(renderChange)
 
