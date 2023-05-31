@@ -58,6 +58,21 @@ export default class ViewEntity extends DeerView {
         super()
         this.template = template
     }
+
+    connectedCallback() {
+        super.connectedCallback()
+        this.loadHashId()
+    }
+
+    loadHashId(){
+        let hash = location.hash?.substring(1)
+        if(!hash){ return }
+        const rerumPrefix = "https://devstore.rerum.io/v1/id/"
+        if(hash.length===24){ hash = `${rerumPrefix}${hash}`}
+        if(!hash.startsWith('http')) { return }
+        this.setAttribute('deer-id',hash)
+    }
 }
 
 customElements.define(`deer-entity`, ViewEntity)
+
