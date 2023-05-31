@@ -8,8 +8,8 @@
  * @org SLU, Research Computing Group
  */
 
-import { UTILS, DEER } from '/js/deer/js/deer-utils.js'
-import '/js/deer/components/templates/default.js'
+import { UTILS, DEER } from '../../js/deer-utils.js'
+import '../templates/default.js'
 import DeerView from './view.js'
 import {Entity, EntityMap, objectMatch} from '../../js/entities.js'
 

@@ -23,10 +23,10 @@
 //     }
 // } else {
 //    console.log('Service workers are not supported in this browser.')
-    import('/js/deer/js/entities.js')
+    import('./entities.js')
 // }
 
 // Import custom components. The basic view.js is required for rendering.
-import('/js/deer/components/view/view.js')
-import('/js/deer/components/view/collection.js')
-import('/js/deer/components/view/entity.js')
+import('../components/view/view.js')
+import('../components/view/collection.js')
+import('../components/view/entity.js')
