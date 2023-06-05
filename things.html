@@ -14,17 +14,17 @@
 
 <body is="mm-content">
     <div class="container" slot="content">
-        <form id="personForm" deer-type="Person" deer-context="http://schema.org">
+        <form id="thingForm" deer-type="Thing" deer-context="http://schema.org">
             <input is="auth-creator" type="hidden" deer-key="creator" value="demo-creator">
-            <input type="hidden" deer-key="targetCollection" value="Musical Map People">
+            <input type="hidden" deer-key="targetCollection" value="Musical Map Things">
             <div class="input-group pt-3 pb-3">
                 <input type="text" deer-key="name" placeholder="Display Name" class="form-control">
                 <div class="input-group-append">
-                    <input type="submit" value="Add a New Person to Collection" class="btn-primary btn">
+                    <input type="submit" value="Add a New Thing to Collection" class="btn-primary btn">
                 </div>
             </div>
         </form>
-        <deer-collection deer-collection="Musical Map People" deer-link="entry.html#" deer-list="itemListElement"></deer-collection>
+        <deer-collection deer-collection="Musical Map Things" deer-link="entry.html#" deer-list="itemListElement"></deer-collection>
     </div>
     <script>
         document.addEventListener('deer-created',newEntry=>location.reload())
