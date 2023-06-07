@@ -39,7 +39,7 @@ export default class DeerView extends HTMLElement {
         super()
         this.template = DEER.TEMPLATES[this.getAttribute(DEER.TEMPLATE)] ?? template
     }
-
+    
     connectedCallback() {
         this.innerHTML = `<span class="spinner-grow"></span>`
         UTILS.worker.addEventListener('message', e => {

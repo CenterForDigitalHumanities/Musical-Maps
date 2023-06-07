@@ -126,3 +126,4 @@ document.dispatchEvent = msg => {
     postMessage({ id, action, payload})
 }
 
+postMessage("worker-loaded")

@@ -126,7 +126,15 @@ const utils = {
                 entity: entity
             }
         }
-        this.worker.postMessage(message)
+        if(this.worker) {
+            this.worker.postMessage(message)
+            return
+        }
+        self.addEventListener('message',msg=>{
+            if(msg === 'worker-loaded') {
+                this.worker.postMessage(message)
+            }
+        },{once:true})
     },
     postEntity(entity) {
         let UTILS = this
@@ -139,7 +147,15 @@ const utils = {
             entity,
             action: "render"
         }
-        this.worker.postMessage(message)
+        if(this.worker) {
+            this.worker.postMessage(message)
+            return
+        }
+        self.addEventListener('message',msg=>{
+            if(msg === 'worker-loaded') {
+                this.worker.postMessage(message)
+            }
+        },{once:true})
     },
 
     /**
