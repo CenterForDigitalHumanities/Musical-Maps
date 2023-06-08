@@ -28,7 +28,7 @@
         </p>
         <form deer-type="Person" deer-context="http://schema.org" hash-id>
             <input deer-key="creator" value="mm-prototype" type="hidden">
-            <input deer-key="targetCollection" value="mm-dev" type="hidden">
+            <input deer-key="targetCollection" value="Musical Map People" type="hidden">
 
             <div class="row">
                 <div class="form-group col-md-6">
@@ -39,20 +39,20 @@
 
                 <div class="form-group col-md-6">
                     <label for="auth-record">Authority Record</label>
-                    <input type="url" class="form-control" deer-key="uri" name="auth-record" placeholder="URI for this person">
+                    <input type="url" class="form-control" deer-key="uri" name="auth-record" id="authorityFile" placeholder="URI for this person">
                     <small class="form-text text-muted">TODO: autoload names from resolved link</small>
                 </div>
             </div>
             <div class="row">
+                <deer-view deer-template="authorityDetails" id="authorityDetails"></deer-view>
+            </div>
+            <div class="row">
                 <div class="form-group col-md-6">
-                    <label for="hasTeacher">Student Of</label>
-                    <input type="url" class="form-control" deer-key="hasTeacher" name="hasTeacher" placeholder="authority record">
+                    
                 </div>
 
                 <div class="form-group col-md-6">
-                    <label for="hasStudent">Student(s) taught</label>
-                    <input type="url" class="form-control" deer-key="hasStudent" name="hasStudent" placeholder="authority record">
-                    <small class="form-text text-muted">Repeatable soon</small>
+
                 </div>
             </div>
 
@@ -92,20 +92,16 @@
                         <option value="~soprano">soprano</option>
                     </select>                </div>   
                 <div class="form-group col-md-6">
-                    <label for="evidence">Evidence</label>
-                    <input type="text" class="form-control" name="evidence" deer-key="evidence" placeholder="citation">
+
                 </div>   
             </div>
 
             <button type="submit" class="btn btn-primary">Create Person 👤</button>
         </form>
-
-        <script src="js/deer/js/deer.js" type="module"></script>
-        <debug class="bg-warning p-2 d-block mt-3">DEBUG: preview collection items...</debug>
-        <deer-collection deer-collection="mm-dev" deer-link="#" deer-list="itemListElement">
-        </deer-collection>
-
     </div>
+    <script>
+        addEventListener('deer-form-rendered',ev=> authorityDetails.setAttribute('deer-id',authorityFile.value+'.json'))
+    </script>
 </body>
 
 </html>

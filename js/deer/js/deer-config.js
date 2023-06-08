@@ -18,7 +18,7 @@ export default {
     LINK: namespace + "-link", // attribute, location of href#[deer-id] for <a>s
     FORM: "form[" + namespace + "-type]", // selector, identifies data entry containers
     ITEMTYPE: namespace + "item-type", //attribute, specialty forms ('entity' by default)
-    SOURCE: namespace + "source", // attribute, URI for asserting annotation
+    SOURCE: namespace + "-source", // attribute, URI for asserting annotation
     EVIDENCE: "nv-evidence", // attribute, URI for supporting evidence
     INPUTTYPE: "input-type", //attribute, defines whether this is an array list, array set, or object 
     ARRAYDELIMETER: "array-delimeter", //attribute, denotes delimeter to use for array.join()
@@ -59,6 +59,13 @@ export default {
          * Each property must be lower-cased and return a template literal
          * or an HTML String.
          */
+        authorityDetails: obj => {
+            const props = obj?.map(r=>{
+                const type = r['@type'].pop().split("/").pop().split("#").pop()
+                const value = obj[(Object.keys(obj).filter(k=>k.startsWith('http')).pop())]?.['@value']
+                return `<div> <strong>${type}</strong>: ${value} </div>`
+            })
+        }
     },
 
     version: "1.0.0"

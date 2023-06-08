@@ -31,7 +31,7 @@ async function renderChange(mutationsList) {
             case DEER.LISTENING:
                 let listensTo = mutation.target.getAttribute(DEER.LISTENING)
                 if (listensTo) {
-                    mutation.target.addEventListener(DEER.EVENTS.CLICKED, e => {
+                    mutation.target.addEventListener('deer-clicked', e => {
                         let loadId = e.detail["@id"]
                         if (loadId === listensTo) { mutation.target.setAttribute(DEER.ID, loadId) }
                     })
@@ -83,7 +83,7 @@ export default class DeerReport {
             }
             UTILS.worker.addEventListener("message", event => {
                 const obj = event.data.payload
-                if(obj['@id'] !== this.id) { return }
+                if(obj?.['@id'] !== this.id) { return }
                 try {
                     let inputElems = this.inputs
                     let flatKeys = [...new Set(inputElems.map(input => input.getAttribute(DEER.KEY)))]

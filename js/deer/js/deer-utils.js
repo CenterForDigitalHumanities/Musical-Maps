@@ -282,6 +282,7 @@ const utils = {
             let annoBodyObjectType = (typeof assertedValue === "object") ? assertedValue.type || assertedValue["@type"] || "" : ""
             let delim = elem.getAttribute(DEER.ARRAYDELIMETER) || DEER.DELIMETERDEFAULT || ","
             let arrayOfValues = []
+            if(assertedValue.length === 1) { assertedValue = assertedValue[0] }
             if (Array.isArray(assertedValue)) {
                 /**
                  * This could mean multiple annotations of similar bodies were put together.

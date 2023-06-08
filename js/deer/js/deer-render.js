@@ -33,7 +33,13 @@ async function renderChange(mutationsList) {
             case DEER.LIST:
                 let id = mutation.target.getAttribute(DEER.ID)
                 if (id === null || mutation.target.getAttribute(DEER.COLLECTION)) return
-                let obj = await fetch(id).then(response => response.json()).catch(error => error)
+                try {
+                    new URL(id)
+                } catch(err) {
+                    // invalid URL, simple check
+                    return
+                }
+                let obj = await fetch(id?.replace(/https?:/,'https:')).then(response => response.json()).catch(error => error)
                 if (!obj) return false
                 RENDER.element(mutation.target, obj)
                 break
@@ -260,7 +266,8 @@ export default class DeerRender {
                 throw err
             } else {
                 if (this.id) {
-                    fetch(this.id).then(response => response.json()).then(obj => RENDER.element(this.elem, obj)).catch(err => err)
+                    new URL(this.id)
+                    fetch(this.id?.replace(/https?:/,'https:')).then(response => response.json()).then(obj => RENDER.element(this.elem, obj)).catch(err => err)
                 } else if (this.collection) {
                     // Look not only for direct objects, but also collection annotations
                     // Only the most recent, do not consider history parent or children history nodes
@@ -307,13 +314,13 @@ export default class DeerRender {
 
         let listensTo = elem.getAttribute(DEER.LISTENING)
         if (listensTo) {
-            elem.addEventListener(DEER.EVENTS.CLICKED, e => {
+            elem.addEventListener('deer-clicked', e => {
                 try {
                     if (e.detail.target.closest(DEER.VIEW + "," + DEER.FORM).getAttribute("id") === listensTo) elem.setAttribute(DEER.ID, e.detail.target.closest('[' + DEER.ID + ']').getAttribute(DEER.ID))
                 } catch (err) { }
             })
             try {
-                window[listensTo].addEventListener("click", e => UTILS.broadcast(e, DEER.EVENTS.CLICKED, elem))
+                window[listensTo].addEventListener("click", e => UTILS.broadcast(e, 'deer-clicked', elem))
             } catch (err) {
                 console.error("There is no HTML element with id " + listensTo + " to attach an event to")
             }
@@ -334,7 +341,7 @@ export default class DeerRender {
  */
 export function initializeDeerViews(config) {
     return new Promise((res) => {
-        const views = document.querySelectorAll(config.VIEW)
+        const views = document.querySelectorAll('deer-view, .deer-view')
         Array.from(views).forEach(elem => new DeerRender(elem, config))
         document.addEventListener(DEER.EVENTS.NEW_VIEW, e => Array.from(e.detail.set).forEach(elem => new DeerRender(elem, config)))
         /**
