@@ -60,11 +60,12 @@ export default {
          * or an HTML String.
          */
         authorityDetails: obj => {
-            const props = obj?.map(r=>{
+            const props = obj?.map?.(r=>{
                 const type = r['@type'].pop().split("/").pop().split("#").pop()
                 const value = obj[(Object.keys(obj).filter(k=>k.startsWith('http')).pop())]?.['@value']
                 return `<div> <strong>${type}</strong>: ${value} </div>`
             })
+            return props
         }
     },
 
