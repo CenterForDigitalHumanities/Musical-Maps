@@ -295,7 +295,7 @@ const utils = {
                 this.warning("There are multiple possible values for key '" + deerKeyValue + "'. See below. ", assertedValue)
                 let arbitraryAssertedValue = ""
                 for (let entry of assertedValue) {
-                    if (["string", "number"].indexOf(typeof entry) > -1) {
+                    if (["string", "number"].includes(typeof entry)) {
                         //We found it and understand it, but we preference annotation objects so look at the rest of the entries.
                         //Consequently, if no annotations are found, the last string/number entry will be the one DEER uses.
                         mapsToAnno = false
