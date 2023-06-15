@@ -2,7 +2,11 @@
  * Template components like headers and footers for reuse across the site.
  * @author cubap@slu.edu
  */
-import ungapCustomElements from "https://cdn.skypack.dev/@ungap/custom-elements" // Safari polyfill
+const polyfill = document.createElement('script')
+const ungapPolyfill = "https://cdn.skypack.dev/@ungap/custom-elements"
+polyfill.setAttribute("src", ungapPolyfill)
+polyfill.setAttribute("type", "module")
+document.head.appendChild(polyfill)
 
 class MmPage extends HTMLBodyElement {
 #template = `
