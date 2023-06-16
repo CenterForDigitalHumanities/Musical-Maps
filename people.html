@@ -6,9 +6,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
-    <script src="js/deer/js/deer.js" type="module"></script>
     <script src="js/layout.js"></script>
     <script src="js/main.js" type="module"></script>
+    <script src="js/deer/js/deer.js" type="module"></script>
     <title>Musical Maps collections</title>
 </head>
 
@@ -24,7 +24,7 @@
                 </div>
             </div>
         </form>
-        <deer-collection deer-collection="Musical Map People" deer-link="person.html#" deer-list="itemListElement"></deer-collection>
+        <deer-collection deer-collection="Musical Map People" deer-link="person.html#" deer-list="itemListElement" deer-template="labelList"></deer-collection>
     </div>
     <script>
         document.addEventListener('deer-updated',newEntry=>location.reload())

@@ -46,7 +46,7 @@ export default class DeerReport {
 
         for (let key in DEER) {
             if (typeof DEER[key] === "string") {
-                DEER[key] = deer[key] || DEER[key]
+                DEER[key] = deer[key] ?? DEER[key]
             } else {
                 DEER[key] = Object.assign(DEER[key], deer[key])
             }
@@ -194,7 +194,7 @@ export default class DeerReport {
                     if (motivation) { annotation.motivation = motivation }
                     if (evidence) { annotation.evidence = evidence }
                     let delim = (input.hasAttribute(DEER.ARRAYDELIMETER)) ? input.getAttribute(DEER.ARRAYDELIMETER) : (DEER.DELIMETERDEFAULT) ? DEER.DELIMETERDEFAULT : ","
-                    let val = input.value
+                    let val = input.hasAttribute("multiple") ? [...input.selectedOptions]?.map?.(opt=>opt.value) ?? [] : input.value
                     let inputType = input.getAttribute(DEER.INPUTTYPE)
                     let arrKey = (input.hasAttribute(DEER.LIST)) ? input.getAttribute(DEER.LIST) : ""
                     if (input.hasAttribute(DEER.INPUTTYPE)) {
