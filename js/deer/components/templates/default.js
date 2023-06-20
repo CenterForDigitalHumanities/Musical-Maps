@@ -36,6 +36,7 @@ DEER.TEMPLATES.label = (obj, options = {}) => {
     let prop = obj[options.key] ?? obj.id ?? obj['@id'] ?? "[ undefined ]"
     let label = options.label ?? UTILS.getLabel(obj, prop)
     try {
+        if('[ unlabeled ]' === label) throw new Error("inadequate label, no change")
         return `${label}`
     } catch (err) {
         return null
