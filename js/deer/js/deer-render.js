@@ -146,21 +146,21 @@ DEER.TEMPLATES.prop = function (obj, options = {}) {
     }
 }
 
-/**
- * Retreive the best label for object and return it formatted as HTML to be drawn.  
- * @param {Object} obj some obj to be labeled
- * @param {Object} options for lookup
- */
-DEER.TEMPLATES.label = function (obj, options = {}) {
-    let key = options.key || "@id"
-    let prop = obj[key] || "[ undefined ]"
-    let label = options.label || UTILS.getLabel(obj, prop)
-    try {
-        return `${label}`
-    } catch (err) {
-        return null
-    }
-}
+// /**
+//  * Retreive the best label for object and return it formatted as HTML to be drawn.  
+//  * @param {Object} obj some obj to be labeled
+//  * @param {Object} options for lookup
+//  */
+// DEER.TEMPLATES.label = function (obj, options = {}) {
+//     let key = options.key || "@id"
+//     let prop = obj[key] || "[ undefined ]"
+//     let label = options.label || UTILS.getLabel(obj, prop)
+//     try {
+//         return `${label}`
+//     } catch (err) {
+//         return null
+//     }
+// }
 
 /**
  * The TEMPLATED renderer to draw an JSON to the screen as some HTML template
@@ -212,21 +212,21 @@ DEER.TEMPLATES.entity = function (obj, options = {}) {
     return tmpl
 }
 
-DEER.TEMPLATES.list = function (obj, options = {}) {
-    let tmpl = `<h2>${UTILS.getLabel(obj)}</h2>`
-    if (options.list) {
-        tmpl += `<ul>`
-        try {
-            obj[options.list].forEach((val, index) => {
-                let name = UTILS.getLabel(val, (val.type || val['@type'] || index))
-                tmpl += (val["@id"] && options.link) ? `<li ${DEER.ID}="${val["@id"]}"><a href="${options.link}${val["@id"]}">${name}</a></li>` : `<li ${DEER.ID}="${val["@id"]}">${name}</li>`
-            })
-        } catch(meh) {}
-        tmpl += `</ul>`
-    }
+// DEER.TEMPLATES.list = function (obj, options = {}) {
+//     let tmpl = `<h2>${UTILS.getLabel(obj)}</h2>`
+//     if (options.list) {
+//         tmpl += `<ul>`
+//         try {
+//             obj[options.list].forEach((val, index) => {
+//                 let name = UTILS.getLabel(val, (val.type || val['@type'] || index))
+//                 tmpl += (val["@id"] && options.link) ? `<li ${DEER.ID}="${val["@id"]}"><a href="${options.link}${val["@id"]}">${name}</a></li>` : `<li ${DEER.ID}="${val["@id"]}">${name}</li>`
+//             })
+//         } catch(meh) {}
+//         tmpl += `</ul>`
+//     }
 
-    return tmpl
-}
+//     return tmpl
+// }
 
 /**
  * The TEMPLATED renderer to draw JSON to the screen
