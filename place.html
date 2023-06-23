@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" type="module"></script>
+    <script src="js/layout.js"></script>
+    <title>Enter a Location - Musical Maps of the World</title>
+</head>
+
+<body is="mm-content">
+    <div class="container" slot="content">
+        <h3>
+            Describe the Place
+        </h3>
+        <p>
+            Use this form to add a new thing to the musical maps.
+        </p>
+        <p class="text-info">
+            NB: As a sandbox prototype, all annotations will be created with
+            the same authentication and is subject to revision.
+        </p>
+        <form deer-type="Location" deer-context="http://schema.org" hash-id>
+            <input deer-key="creator" value="mm-prototype" type="hidden">
+            <input deer-key="targetCollection" value="Musical Map Locations" type="hidden">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="name">Name</label>
+                    <input type="text" id="mmLabel" name="name" deer-key="name" class="form-control"
+                        placeholder="Enter a label/displayname for this Location">
+                    <small class="form-text text-muted">This name is for internal display</small>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="auth-record">GeoName</label>
+                    <input type="url" class="form-control" deer-key="uri" name="auth-record" id="authorityFile"
+                        placeholder="https://id.loc.gov/authorities/names/n########">
+                    <small class="form-text text-muted">URI from GeoNames</small>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Create Place 👤</button>
+        </form>
+    </div>
+    <script>
+        addEventListener('deer-form-rendered', ev => {
+            locLink.setAttribute('href', `https://id.loc.gov/search/?q=${mmLabel.value.trim().replace(/\s/g, "+")}&q=cs:http://id.loc.gov/authorities/names`)
+        })
+    </script>
+</body>
+
+</html>
