@@ -44,11 +44,11 @@
                         placeholder="https://id.loc.gov/authorities/names/n########">
                     <small class="form-text text-muted">URI from <a id="locLink" target="_blank"
                             href="https://id.loc.gov/authorities/names.html">LOC Name Authority</a>
+                    </small>
                 </div>
             </div>
-            <!-- <div class="row">
-                <deer-view deer-template="authorityDetails" id="authorityDetails"></deer-view>
-            </div> -->
+            <div class="row" id="authorityDetails">
+            </div>
             <div class="row">
                 <div class="form-group col-md-6">
 
@@ -166,6 +166,30 @@
     </div>
     <script>
         addEventListener('deer-form-rendered', ev => locLink.setAttribute('href', `https://id.loc.gov/search/?q=${mmLabel.value.trim().replace(/\s/g, "+")}&q=cs:http://id.loc.gov/authorities/names`))
+        authorityFile.addEventListener('update', async ev => {
+            // https://id.loc.gov/authorities/names/n79011997.json
+            const locId = authorityFile.value?.split('/').pop()
+            if(locId.length !== 9) { return }
+            const jsonURI = `https://id.loc.gov/authorities/names/${locId}.json`
+            const nameFile = await fetch(jsonURI).then(res=>res.json()).catch(err=>{})
+            const ObjectMap = new Map()
+            nameFile.forEach(element => {
+                const type = Array.isArray(element['@type']) ? element['@type'].pop() : element['@type']
+                const key = type.split('/').pop()
+                const keyForVal = Object.keys(element).find(k=>k.startsWith('http'))
+                const currentVal = ObjectMap.get(key)
+                const newVal = Array.isArray(currentVal) ? currentVal.push(element[keyForVal]['@value']) : [element[keyForVal]['@value']]
+                ObjectMap.set(key,newVal)
+            })
+            authorityDetails.innerHTML = `
+            <dl>
+                ${[...ObjectMap.keys()].reduce((a,b)=>{
+                    a+=`<dt>${b}</dt>
+                    <dd>${ObjectMap.get(b)}</dd>`
+                },``)}
+            </dl>
+            `
+        })
     </script>
 </body>
 
