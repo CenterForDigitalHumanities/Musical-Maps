@@ -165,7 +165,9 @@
         </div>
     </div>
     <script>
-        addEventListener('deer-form-rendered', ev => locLink.setAttribute('href', `https://id.loc.gov/search/?q=${mmLabel.value.trim().replace(/\s/g, "+")}&q=cs:http://id.loc.gov/authorities/names`))
+        addEventListener('deer-form-rendered', ev => {
+            locLink.setAttribute('href', `https://id.loc.gov/search/?q=${mmLabel.value.trim().replace(/\s/g, "+")}&q=cs:http://id.loc.gov/authorities/names`)
+        })
     </script>
 </body>
 
