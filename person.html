@@ -166,7 +166,7 @@
     </div>
     <script>
         addEventListener('deer-form-rendered', ev => locLink.setAttribute('href', `https://id.loc.gov/search/?q=${mmLabel.value.trim().replace(/\s/g, "+")}&q=cs:http://id.loc.gov/authorities/names`))
-        authorityFile.addEventListener('update', async ev => {
+        authorityFile.addEventListener('click', async ev => {
             // https://id.loc.gov/authorities/names/n79011997.json
             const locId = authorityFile.value?.split('/').pop()
             if(locId.length !== 9) { return }
@@ -178,13 +178,13 @@
                 const key = type.split('/').pop()
                 const keyForVal = Object.keys(element).find(k=>k.startsWith('http'))
                 const currentVal = ObjectMap.get(key)
-                const newVal = Array.isArray(currentVal) ? currentVal.push(element[keyForVal]['@value']) : [element[keyForVal]['@value']]
+                const newVal = Array.isArray(currentVal) ? currentVal.push(element[keyForVal].pop?.()?.['@value']) : [element[keyForVal].pop?.()?.['@value']]
                 ObjectMap.set(key,newVal)
             })
             authorityDetails.innerHTML = `
             <dl>
                 ${[...ObjectMap.keys()].reduce((a,b)=>{
-                    a+=`<dt>${b}</dt>
+                    return a += `<dt>${b}</dt>
                     <dd>${ObjectMap.get(b)}</dd>`
                 },``)}
             </dl>

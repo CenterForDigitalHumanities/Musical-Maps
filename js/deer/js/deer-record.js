@@ -24,7 +24,7 @@ async function renderChange(mutationsList) {
             case DEER.ID:
                 let id = mutation.target.getAttribute(DEER.ID)
                 if (id === null) return
-                const obj = await fetch(id).then(response => response.json()).catch(error => error)
+                const obj = await getObject(id)
                 mutation.target.DeerReport.fillValues(new Map(Object.entries(obj)))
                 break
             case DEER.LISTENING:
@@ -36,6 +36,64 @@ async function renderChange(mutationsList) {
                     })
                 }
         }
+    }
+}
+
+async function getObject(findId) {
+
+    let obj = fetch(findId).then(res => res.json())
+    let annos = findByTargetId(findId,[],DEER.URLS.QUERY)
+    await Promise.all([obj, annos]).then(res => {
+        annos = res[1]
+        obj = res[0]
+    })
+    annos.forEach(anno=>obj = applyAssertions(obj,anno.body))
+
+    return obj
+
+    function applyAssertions(assertOn, annotationBody) {
+        if (Array.isArray(annotationBody)) { return annotationBody.forEach(a=>applyAssertions(assertOn,a)) }
+    
+        const assertions = {}
+        Object.entries(annotationBody).forEach(([k, v]) => {
+            const assertedValue = UTILS.getValue(v)
+            if ( [undefined,null,"",[],assertOn[k]].flat().includes(assertedValue) ) { return }
+            if (assertOn.hasOwnProperty(k) && ![undefined,null,"",[]].includes(assertOn[k]) ) {
+                Array.isArray(assertions[k]) ? assertions[k].push(assertedValue).flat() : assertions[k] = [assertOn[k],assertedValue].flat()
+            } else {
+                assertions[k] = assertedValue
+            }
+        })
+    
+        // Simplify any arrays of length 1, which may not be a good idea.
+        Object.entries(assertions).forEach(([k, v]) => { if (Array.isArray(v) && v.length === 1) { v = v[0] } })
+    
+        return Object.assign(assertOn, assertions)
+    }
+
+    async function findByTargetId(id, targetStyle = [], queryUrl = DEER.URLS.QUERY) {
+        if (!Array.isArray(targetStyle)) {
+            targetStyle = [targetStyle]
+        }
+        targetStyle = targetStyle.concat(["target", "target.@id", "target.id"]) //target.source?
+        let historyWildcard = { "$exists": true, "$size": 0 }
+        let obj = { "$or": [], "__rerum.history.next": historyWildcard }
+        for (let target of targetStyle) {
+            if (typeof target === "string") {
+                let o = {}
+                o[target] = id
+                obj["$or"].push(o)
+            }
+        }
+        return fetch(queryUrl+"?limit=100&skip=0", {
+            method: "POST",
+            body: JSON.stringify(obj),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+            .then(response => response.json())
+            .catch((err) => console.error(err))
     }
 }
 
@@ -117,6 +175,10 @@ export default class DeerReport {
             UTILS.broadcast(undefined, DEER.EVENTS.FORM_RENDERED, this.elem, Object.fromEntries(valueMap))
         }, 0)
         this.elem.click()
+        const submitBtn = this.elem.querySelector('button[type="submit"]')
+        if(submitBtn){
+            submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
+        }
     }
 
     processRecord(event) {
@@ -129,13 +191,6 @@ export default class DeerReport {
 
         if (!this.$isDirty) {
             UTILS.warning(event.target.id + " form submitted unchanged.")
-        }
-        if (this.elem.getAttribute(DEER.ITEMTYPE) === "simple") {
-            return this.simpleUpsert(event).then(entity => {
-                //Notice that sipleUpsert may return {} in certain controlled situations, causing an undefined error here, on purpose.
-                this.elem.setAttribute(DEER.ID, entity["@id"])
-                new DeerReport(this.elem)
-            })
         }
         let record = {
             "@type": this.type
