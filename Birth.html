@@ -74,6 +74,18 @@
             geoNameLink.textContent = `Search for ${city}`
             geoNameLink.classList.add('btn', 'btn-secondary')
         })
+        ;(()=>{
+            let hash = location.hash?.substring(1)
+            if(!hash){ return }
+            const rerumPrefix = "https://devstore.rerum.io/v1/id/"
+            if(hash.length===24){ hash = `${rerumPrefix}${hash}`}
+            fetch(hash).then(res=>res.json()).then(person=>{
+                if(person['@type']!=="Person") { alert("This Event expects a Person but got a "+person['@type']) }
+                const nameInput = document.querySelector('[name="name"]')
+                if (!nameInput || nameInput?.value?.length > 2) { return }
+                nameInput.setAttribute('value',`Birth of ${person.name || "ERR!"}`)
+            })
+        })()
     </script>
 </body>
 
