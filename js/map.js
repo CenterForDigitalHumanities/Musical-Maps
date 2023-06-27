@@ -62,7 +62,7 @@ VIEWER.isJSON = function(obj) {
  * 
  * Return the array of Feature Collections and/or Features
  */
-VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = [], setResource = true) {
+VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyInstances = [], setResource = true) {
     //Check against the limits first.  If we reached any, break the recursion and return the results so far.
     if(VIEWER.resourceCount > VIEWER.resourceFindLimit){
         console.warn(`Resource processing limit [${VIEWER.resourceFindLimit}] reached. Make sure your resources do not contain circular references.`)
@@ -70,13 +70,14 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
     }
     let resolved_uri = ""
     // For the eventuality that data is actually an array of data
-    if (!Array.isArray(datas)) {
-        datas = [datas]
+    if (!Array.isArray(expandedEntities)) {
+        expandedEntities = [expandedEntities]
     }
-    // On each piece of datas, each array item in geoProps are the only properties that will contain a referenced or embedded GeoJSON object.
-    // Each piece of datas is a resolved and expanded Entity as JSON.  It will not contain child properties to recurse on.
-    for await (const data of datas){
-        let t1 = data.type ?? data["@type"] ?? ""
+    // On each piece of expandedEntities, each array item in geoProps are the only properties that will contain a referenced or embedded GeoJSON object.
+    // Each piece of expandedEntities is a resolved and expanded Entity as JSON.  It will not contain child properties to recurse on.
+    for await (const data of expandedEntities){
+        const t1 = data.type ?? data["@type"] ?? ""
+        const entityLabel = data.name ?? data.label ?? data.title ?? "No Entity Label"
         VIEWER.resourceCount += 1
         if(VIEWER.resourceCount > VIEWER.resourceFindLimit){
             console.warn(`geography lookup limit [${VIEWER.resourceFindLimit}] reached`)
@@ -89,17 +90,20 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                     console.warn(`${property} property aggregation limit [${VIEWER.resourceFindLimit}] reached`)
                     return allPropertyInstances
                 }
-                const geo = data[prop]
+                let geo = data[prop]
+                if(geo === null || geo === undefined){
+                    geo = {}
+                }
                 if(typeof geo === "string"){
                     // This could be a URI.  Attempt to resolve it
                     if(geo.indexOf("www.geonames.org")){
                         // Note it is likely a geonames URI like https://www.geonames.org/2761369/vienna.html
                         // Needs turned into http://api.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
-                        const segments = url.split("/")
+                        const segments = geo.split("/")
                         const num = segments[segments.length-2]
                         const orig = geo
                         const geoNamesUri = `http://api.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
-                        geo = await fetch(geo, {"cache":"default"})
+                        geo = await fetch(geoNamesUri, {"cache":"default"})
                         .then(resp => resp.json())
                         .then(geoNamesJson => {
                             // We need to turn this into a GeoJSON object
@@ -111,7 +115,8 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                                         "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
                                     },
                                     "properties" : {
-                                        "label": {
+                                        "entity_label" : entityLabel,
+                                        "location_label": {
                                             "en": [
                                                 `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
                                             ]
@@ -119,6 +124,9 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                                         "seeAlso" : orig,
                                     }
                                 }    
+                            }
+                            else{
+                                return {}
                             }
                         })
                         .catch(err => {
@@ -144,7 +152,7 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                     }
                 }
                 const featureType = geo.type ?? geo["@type"] ?? ""
-                const data_uri = geo.id ?? geo["@id"] ?? ""
+                let data_uri = geo.id ?? geo["@id"] ?? ""
                 let data_resolved
                 if(featureType === "FeatureCollection"){
                     if (!geo.hasOwnProperty("features")) {
@@ -166,12 +174,13 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                                 //Then the id handed back a different object.  This is not good, somebody messed up their data
                                 VIEWER.resourceMap.set(resolved_uri, geo)
                             }  
+                            geo.__fromResource = t1
+                            allPropertyInstances.push(geo)
                         }
-                        geo.__fromResource = t1
                     }
                 }
                 else if (featureType === "Feature"){
-                    if (!geo.hasOwnProperty("geoemtry")) {
+                    if (!geo.hasOwnProperty("geometry")) {
                         //It is either referenced or malformed
                         data_uri = geo.id ?? geo["@id"]
                         geo = data_uri ? 
@@ -201,6 +210,8 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
             }
         }
     }
+
+    return allPropertyInstances
 }
 
 /**
@@ -237,9 +248,8 @@ VIEWER.verifyResource = function() {
         }
         else if (typeof VIEWER.resource["@context"] === "string") {
             if (!VIEWER.musical_map_contexts.includes(VIEWER.resource["@context"])) {
-                alert("The IIIF resource type does not have the correct @context, it must be the Presentation API 3 Linked Data context.  The resource will be processed, but please fix this ASAP.")
+                alert("The top level object you provided does not contain the Musical Maps JSON-LD context.  Ensure this is correct for your resource.  Processing will continue.")
             }
-            alert("The top level object you provided does not contain the navPlace JSON-LD context.  Ensure this is correct for your resource.  Processing will continue.")
             //return false
         }
         //@context value is an array, one item in the array needs to be one of the supported presentation api uris.  
@@ -471,30 +481,33 @@ VIEWER.formatPopup = function(feature, layer) {
     let langs = []
     let stringToLangMap = {"none":[]}
     if (feature.properties){
-        if (feature.properties.label){
-            //This should be a language map, but might be a string...
-            if(typeof feature.properties.label === "string"){
-                //console.warn("Detected a 'label' property with a string value.  'label' must be a language map.")
-                stringToLangMap.none.push(feature.properties.label)
-                feature.properties.label = JSON.parse(JSON.stringify(stringToLangMap))
-            }
-            langs = Object.keys(feature.properties.label)
-            if(langs.length > 0){
-                popupContent += `<div class="featureInfo">`
-                //Brute force loop all the languages and add them together, separated by their language keys.
-                for (const langKey in feature.properties.label) {
-                    let allLabelsForLang =
-                        feature.properties.label[langKey].length > 1 ? feature.properties.label[langKey].join(" -- ") :
-                        feature.properties.label[langKey]
-                    popupContent += `<b>${langKey}: ${allLabelsForLang}</b></br>`
-                    if(langs.length > 1 && i<langs.length-1){
-                        popupContent += `</br>`
-                    }
-                    i++
-                }
-                popupContent += `</div>`    
-            }
+        if (feature.properties.entity_label) {
+            popupContent += `<div class="featureInfo"> ${feature.properties.entity_label} </div>`
         }
+        // if (feature.properties.location_label){
+        //     //This should be a language map, but might be a string...
+        //     if(typeof feature.properties.location_label === "string"){
+        //         //console.warn("Detected a 'label' property with a string value.  'label' must be a language map.")
+        //         stringToLangMap.none.push(feature.properties.location_label)
+        //         feature.properties.location_label = JSON.parse(JSON.stringify(stringToLangMap))
+        //     }
+        //     langs = Object.keys(feature.properties.location_label)
+        //     if(langs.length > 0){
+        //         popupContent += `<div class="featureInfo">`
+        //         //Brute force loop all the languages and add them together, separated by their language keys.
+        //         for (const langKey in feature.properties.location_label) {
+        //             let allLabelsForLang =
+        //                 feature.properties.location_label[langKey].length > 1 ? feature.properties.location_label[langKey].join(" -- ") :
+        //                 feature.properties.location_label[langKey]
+        //             popupContent += `<b>${langKey}: ${allLabelsForLang}</b></br>`
+        //             if(langs.length > 1 && i<langs.length-1){
+        //                 popupContent += `</br>`
+        //             }
+        //             i++
+        //         }
+        //         popupContent += `</div>`    
+        //     }
+        // }
         if (feature.properties.summary) {
             stringToLangMap = {"none":[]}
             i = 0
@@ -528,6 +541,7 @@ VIEWER.formatPopup = function(feature, layer) {
             let seeURI = feature.properties.seeAlso ?? ""
             popupContent += `See <a href="${feature.properties.seeAlso}" target="_blank">${feature.properties.seeAlso}</a>`
         }
+        
         layer.bindPopup(popupContent)
     }
 }
