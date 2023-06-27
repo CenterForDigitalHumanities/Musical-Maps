@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" type="module"></script>
+    <script src="js/map.js" type="module"></script>
+    <script src="js/layout.js"></script>
+    <title>Historical Musical Map</title>
+</head>
+
+<body is="mm-content">
+    <div class="container" slot="content">
+        <div id="viewerBody" class="container is-hidden">
+            <p>
+                This viewer is for W3C Web Annotation 'Annotation' and 'AnnotationPage' types.  There is also a viewer specifically for IIIF Presentation API Defined Types.  <a class="text-dots" target="_blank" href="index.html">Click here to learn more</a>.
+            </p>
+            <p> 
+                Clicking any shape on the map will show applicable information about the resource that shape represents.  
+                Pan and zoom are supported.
+            </p>
+
+            <div id="leafletInstanceContainer">
+                <div id="loadingMessage" style="text-align: center;">Gathering Resource Data From Around The World...</div>
+            </div>
+        </div>
+        <div id="needs">
+            <p class="howTo"> 
+                It looks like you haven't provided a URI.  If you are not using the URL parameter <code>?iiif-content=</code> or <code>?data=</code>, you can supply a URI here.  
+                <input id="resourceURI" type="text"/>
+            </p>
+        </div>
+        <div cstyle="margin-top: 1em;">
+            <div class="row">
+                <div id="options" class="col-10">
+                    <input id="loadInput" type="button" onclick="loadURI(event)" value="Load Resource" />
+                    <input type="button" onclick="startOver(event)" value="Start Over" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+    </script>
+</body>
+
+</html>
