@@ -6,6 +6,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+       integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+       crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+       integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+       crossorigin=""></script>
     <script src="js/main.js" type="module"></script>
     <script src="js/map.js" type="module"></script>
     <script src="js/layout.js"></script>
@@ -14,7 +21,7 @@
 
 <body is="mm-content">
     <div class="container" slot="content">
-        <div id="viewerBody" class="container is-hidden">
+        <div id="viewerBody" class="is-hidden">
             <p>
                 This viewer is for W3C Web Annotation 'Annotation' and 'AnnotationPage' types.  There is also a viewer specifically for IIIF Presentation API Defined Types.  <a class="text-dots" target="_blank" href="index.html">Click here to learn more</a>.
             </p>
