@@ -85,6 +85,19 @@
                 if (!nameInput || nameInput?.value?.length > 2) { return }
                 nameInput.setAttribute('value',`Birth of ${person.name || "ERR!"}`)
             })
+            fetch("https://tinydev.rerum.io/query/", {
+                method: "POST",
+                body: JSON.stringify({
+                    target: hash,
+                    'body.presentAt': {$exists:true}
+                })
+            }).then(response => response.json())
+            .then(anno=>{
+                if(anno.length > 0) { 
+                    alert("Hold on, there's already one created")
+                    DOB.setAttribute("deer-id",anno.pop()?.body.presentAt)
+                }
+            })
         })()
     </script>
 </body>
