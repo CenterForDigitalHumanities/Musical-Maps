@@ -18,9 +18,10 @@ import { UTILS, DEER } from '../../js/deer-utils.js'
  * @param {String} label The label to be displayed when drawn
  */
 DEER.TEMPLATES.prop = (obj, options = {}) => {
-    let prop = obj[options.key]
-    let key = options.key ?? "[ missing key ]"
     try {
+        let key = options.key ?? "[ missing key ]"
+        let prop = obj[key]
+        if(!prop) throw new Error()
         return `<span>${key}: ${UTILS.getValue(prop) ?? `Property <code>${key}</code> is not defined on <a href="${obj.id}" target="_blank">this document</a>`}</span>`
     } catch (err) {
         return null
