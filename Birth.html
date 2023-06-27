@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" type="module"></script>
+    <script src="js/layout.js"></script>
+    <title>Birth Event - Musical Maps of the World</title>
+</head>
+
+<body is="mm-content">
+    <div class="container" slot="content">
+        <h3>
+            Describe the Birth
+        </h3>
+        <p>
+            Use this form to add a new event to the musical maps.
+            A proper event has an impact on a person or location within
+            this project and has both a time and place. Evidence for these
+            assertions should be included with every entry.
+        </p>
+        <p class="text-info">
+            NB: As a sandbox prototype, all annotations will be created with
+            the same authentication and is subject to revision.
+        </p>
+        <form deer-type="Birth" deer-context="http://schema.org" id="DOB">
+            <input deer-key="creator" value="mm-prototype" type="hidden">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="name">Name</label>
+                    <input type="text" name="name" deer-key="name" class="form-control" placeholder="Enter a label for this Event">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="location">Event location</label>
+                    <input id="geoNameInput" type="url" class="form-control" deer-key="location" name="location" required>
+                    <a id="geoNameLink" target="_blank" title="Open search in a new tab">Search GeoNames</a>
+                    <small class="form-text text-muted">GeoNames URI: "https://www.geonames.org/#######/CITY.html"</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="date">Exact date</label>
+                    <input type="date" class="form-control" deer-key="date" name="date" min="1800-01-01" max="1950-12-31" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Birth 🎂</button>
+        </form>
+
+        <form deer-type="Person" hash-id id="person">
+            <input deer-key="creator" value="mm-prototype" type="hidden">
+            <label for="presentAt">Present At</label>
+            <input type="text" class="form-control" deer-key="presentAt" name="presentAt" deer-listening="DOB">
+            <label for="birthDate">Birthdate</label>
+            <input type="date" class="form-control" deer-key="birthDate" name="birthDate">
+            <label for="birthPlace">Birth Place</label>
+            <input type="date" class="form-control" deer-key="birthPlace" name="birthPlace">
+            <button type="submit" class="btn btn-primary">Update Birth</button>
+        </form>
+    </div>
+    <script>
+        // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
+        geoNameInput.addEventListener('input',ev=>{
+            const queryLocation = ev.target.value?.split(',')
+            const city = queryLocation[0].trim()
+            const country = queryLocation?.[1] ? `&country=${queryLocation?.[1]?.trim()}` : ``
+            const query = `https://www.geonames.org/search.html?q=${city}${country}`
+            geoNameLink.setAttribute("href",query)
+            geoNameLink.textContent = `Search for ${city}`
+            geoNameLink.classList.add('btn', 'btn-secondary')
+        })
+    </script>
+</body>
+
+</html>
