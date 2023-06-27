@@ -108,7 +108,7 @@ VIEWER.findAllFeatures = async function(datas, geoProps, allPropertyInstances = 
                                     "type" : "Feature",
                                     "geometry":{
                                         "type" : "Point",
-                                        "coordinates" : [geoNamesJson.lng. geoNamesJson.lat]
+                                        "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
                                     },
                                     "properties" : {
                                         "label": {
