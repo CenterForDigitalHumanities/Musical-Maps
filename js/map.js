@@ -288,14 +288,26 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
         .then(r => r.json())
         .then(pointers => {
             let list = []
-            pointers.map(pa => {
+            pointers.forEach(pa => {
                 // presentAt can be a String URI or an Array of String URIs, or null/undefined
-                if(pa.body && pa.body.presentAt){
-                    if(Array.isArray(pa.body.presentAt)){
-                        pa.body.presentAt.map(uri => list.push(fetch(uri).then(response => response.json())))
+                if(pa.body && pa.body.presentAt && pa.body.presentAt.value){
+                    if(Array.isArray(pa.body.presentAt.value)){
+                        pa.body.presentAt.value.forEach(uri => {
+                            if(typeof uri === "string"){
+                                list.push(fetch(uri).then(response => response.json()))    
+                            }
+                            else{
+                                list.push(uri)
+                            }
+                        })
                     }
                     else{
-                        list.push(fetch(pa.body.presentAt).then(response => response.json()))
+                        if(typeof pa.body.presentAt.value === "string"){
+                            list.push(fetch(pa.body.presentAt.value).then(response => response.json()))    
+                        }
+                        else{
+                            list.push(pa.body.presentAt.value)
+                        }
                     }
                 }
             })
@@ -307,7 +319,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
             return []
         })
         // Sort the events by date
-        entityEvents = entityEvents.sort(function(a,b){return a.startDate - b.startDate})
+        entityEvents = entityEvents.sort(function(a,b){return new Date(a.date) - new Date(b.date)})
 
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
@@ -472,9 +484,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                     color: appColor,
                     weight: 1,
                     opacity: 1,
-                    fillOpacity: 1,
-                    zIndex : 2
-                })
+                    fillOpacity: 1                })
             },
             style: function(feature) {
                 let __fromResource = feature.properties.__fromResource ?? ""
@@ -500,11 +510,12 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                     let options = {
                         color: appColor,
                         fillColor: appColor,
-                        opacity: 0.5,
-                        fillOpacity: 0.5,
+                        opacity: 0.25,
+                        fillOpacity: 0.25,
                         interactive: false
                     }
                     if(ft === "LineString"){
+                        // Make these dashed to imply 'travel'
                         options.dashArray = 4
                     }
                     return options
@@ -579,15 +590,11 @@ VIEWER.formatPopup = function(feature, layer) {
                 popupContent += `</div>`
             }
         }
+        // This always makes the pop ups better.  Is there a way to get one from the Event?
         if (feature.properties.thumbnail) {
             let thumbnail = feature.properties.thumbnail[0].id ?? feature.properties.thumbnail[0]["@id"] ?? ""
             popupContent += `<img src="${thumbnail}"\></br>`
-        }
-        // if (feature.properties.seeAlso) {
-        //     let seeURI = feature.properties.seeAlso ?? ""
-        //     popupContent += `See <a href="${feature.properties.seeAlso}" target="_blank">${feature.properties.seeAlso}</a>`
-        // }
-        
+        }       
         layer.bindPopup(popupContent)
     }
 }
