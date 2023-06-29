@@ -66,8 +66,12 @@ export default class DeerCollection extends DeerView {
 
     constructor() {
         super()
-        this.#loadCollection().catch(err=>console.error(err))
+        this.reload()
         this.template = DEER.TEMPLATES[this.getAttribute(DEER.TEMPLATE) ?? 'list']
+    }
+
+    reload() {
+        this.#loadCollection().catch(err=>console.error(err))
     }
 }
 

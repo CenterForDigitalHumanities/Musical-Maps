@@ -27,7 +27,10 @@
         <deer-collection deer-collection="Musical Map People" deer-link="person.html#" deer-list="itemListElement" deer-template="labelList"></deer-collection>
     </div>
     <script>
-        document.addEventListener('deer-updated',newEntry=>location.reload())
+        document.addEventListener('deer-updated',newEntry=>{
+            if(!newEntry.target?.hasAttribute('deer-type')) { return }
+            document.querySelector('deer-collection').reload()
+        })
     </script>
 </body>
 
