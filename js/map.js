@@ -30,7 +30,7 @@ VIEWER.mymap = {}
 VIEWER.musicalMapTypes = ["Person", "Place", "Thing", "Event"]
 
 //Supported Resource Types
-VIEWER.possibleGeoProperties = ["birthPlace", "location"]
+VIEWER.possibleGeoProperties = ["location"]
 
 //Viewer specific resources to consider in logic.  Set on init()
 VIEWER.supportedTypes = []
@@ -83,129 +83,127 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
             console.warn(`geography lookup limit [${VIEWER.resourceFindLimit}] reached`)
             return allPropertyInstances
         }
-        if (VIEWER.supportedTypes.includes(t1)) {
-            //Loop the keys, looks for those properties with geography values
-            for await (const prop of geoProps){
-                if(allPropertyInstances.length > VIEWER.resourceFindLimit){
-                    console.warn(`${property} property aggregation limit [${VIEWER.resourceFindLimit}] reached`)
-                    return allPropertyInstances
-                }
-                let geo = data[prop]
-                if(geo === null || geo === undefined){
-                    geo = {}
-                }
-                if(typeof geo === "string"){
-                    // This could be a URI.  Attempt to resolve it
-                    if(geo.indexOf("www.geonames.org")){
-                        // Note it is likely a geonames URI like https://www.geonames.org/2761369/vienna.html
-                        // Needs turned into http://api.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
-                        const segments = geo.split("/")
-                        const num = segments[segments.length-2]
-                        const orig = geo
-                        const geoNamesUri = `http://api.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
-                        geo = await fetch(geoNamesUri, {"cache":"default"})
-                        .then(resp => resp.json())
-                        .then(geoNamesJson => {
-                            // We need to turn this into a GeoJSON object
-                            if(geoNamesJson.lng && geoNamesJson.lat){
-                                return {
-                                    "type" : "Feature",
-                                    "geometry":{
-                                        "type" : "Point",
-                                        "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
-                                    },
-                                    "properties" : {
-                                        "entity_label" : entityLabel,
-                                        "location_label": {
-                                            "en": [
-                                                `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
-                                            ]
-                                        }
+        //Loop the keys, looks for those properties with geography values
+        for await (const prop of geoProps){
+            if(allPropertyInstances.length > VIEWER.resourceFindLimit){
+                console.warn(`${property} property aggregation limit [${VIEWER.resourceFindLimit}] reached`)
+                return allPropertyInstances
+            }
+            let geo = data[prop]
+            if(geo === null || geo === undefined){
+                geo = {}
+            }
+            if(typeof geo === "string"){
+                // This could be a URI.  Attempt to resolve it
+                if(geo.indexOf("www.geonames.org")){
+                    // Note it is likely a geonames URI like https://www.geonames.org/2761369/vienna.html
+                    // Needs turned into http://api.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
+                    const segments = geo.split("/")
+                    const num = segments[segments.length-2]
+                    const orig = geo
+                    const geoNamesUri = `http://api.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
+                    geo = await fetch(geoNamesUri, {"cache":"default"})
+                    .then(resp => resp.json())
+                    .then(geoNamesJson => {
+                        // We need to turn this into a GeoJSON object
+                        if(geoNamesJson.lng && geoNamesJson.lat){
+                            return {
+                                "type" : "Feature",
+                                "geometry":{
+                                    "type" : "Point",
+                                    "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
+                                },
+                                "properties" : {
+                                    "entity_label" : entityLabel,
+                                    "location_label": {
+                                        "en": [
+                                            `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
+                                        ]
                                     }
-                                }    
-                            }
-                            else{
-                                return {}
-                            }
-                        })
-                        .catch(err => {
-                            console.error(err)
+                                }
+                            }    
+                        }
+                        else{
                             return {}
-                        })
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err)
+                        return {}
+                    })
 
-                        // Only if we ended up with a good Point Feature??
-                        VIEWER.resourceMap.set(orig, geo)    
-                    }
-                    else{
-                        // Just some URI that we need the JSON of.  It should result in a Feature or FeatureCollection
-                        geo = await fetch(geo, {"cache":"default"})
+                    // Only if we ended up with a good Point Feature??
+                    VIEWER.resourceMap.set(orig, geo)    
+                }
+                else{
+                    // Just some URI that we need the JSON of.  It should result in a Feature or FeatureCollection
+                    geo = await fetch(geo, {"cache":"default"})
+                    .then(resp => resp.json())
+                    .catch(err => {
+                        console.error(err)
+                        return {}
+                    })
+                    if(geo.id || geo["@id"]){
+                        const geoid = geo.id ?? geo["@id"]
+                        VIEWER.resourceMap.set(geoid, geo)    
+                    } 
+                }
+            }
+            const featureType = geo.type ?? geo["@type"] ?? ""
+            let data_uri = geo.id ?? geo["@id"] ?? ""
+            let data_resolved
+            if(featureType === "FeatureCollection"){
+                if (!geo.hasOwnProperty("features")) {
+                    //It is either referenced or malformed
+                    geo = data_uri ? 
+                        await fetch(data_uri, {"cache":"default"})
                         .then(resp => resp.json())
                         .catch(err => {
                             console.error(err)
                             return {}
                         })
-                        if(geo.id || geo["@id"]){
-                            const geoid = geo.id ?? geo["@id"]
-                            VIEWER.resourceMap.set(geoid, geo)    
-                        } 
-                    }
-                }
-                const featureType = geo.type ?? geo["@type"] ?? ""
-                let data_uri = geo.id ?? geo["@id"] ?? ""
-                let data_resolved
-                if(featureType === "FeatureCollection"){
-                    if (!geo.hasOwnProperty("features")) {
-                        //It is either referenced or malformed
-                        geo = data_uri ? 
-                            await fetch(data_uri, {"cache":"default"})
-                            .then(resp => resp.json())
-                            .catch(err => {
-                                console.error(err)
-                                return {}
-                            })
-                            : {}
+                        : {}
 
-                        if (geo.hasOwnProperty("features")) {
-                            //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                            VIEWER.resourceMap.set(data_uri, geo)
-                            resolved_uri = geo["@id"] ?? geo.id ?? ""
-                            if(data_uri !== resolved_uri){
-                                //Then the id handed back a different object.  This is not good, somebody messed up their data
-                                VIEWER.resourceMap.set(resolved_uri, geo)
-                            }  
-                            geo.__fromResource = t1
-                            allPropertyInstances.push(geo)
-                        }
+                    if (geo.hasOwnProperty("features")) {
+                        //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
+                        VIEWER.resourceMap.set(data_uri, geo)
+                        resolved_uri = geo["@id"] ?? geo.id ?? ""
+                        if(data_uri !== resolved_uri){
+                            //Then the id handed back a different object.  This is not good, somebody messed up their data
+                            VIEWER.resourceMap.set(resolved_uri, geo)
+                        }  
+                        geo.__fromResource = t1
+                        allPropertyInstances.push(geo)
                     }
                 }
-                else if (featureType === "Feature"){
-                    if (!geo.hasOwnProperty("geometry")) {
-                        //It is either referenced or malformed
-                        data_uri = geo.id ?? geo["@id"]
-                        geo = data_uri ? 
-                            await fetch(data_uri, {"cache":"default"})
-                            .then(resp => resp.json())
-                            .catch(err => {
-                                console.error(err)
-                                return {}
-                            })
-                            : {}
+            }
+            else if (featureType === "Feature"){
+                if (!geo.hasOwnProperty("geometry")) {
+                    //It is either referenced or malformed
+                    data_uri = geo.id ?? geo["@id"]
+                    geo = data_uri ? 
+                        await fetch(data_uri, {"cache":"default"})
+                        .then(resp => resp.json())
+                        .catch(err => {
+                            console.error(err)
+                            return {}
+                        })
+                        : {}
 
-                        if (geo.hasOwnProperty("geometry")) {
-                            //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                            VIEWER.resourceMap.set(data_uri, data_resolved)
-                            resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
-                            if(data_uri !== resolved_uri){
-                                //Then the id handed back a different object.  This is not good, somebody messed up their data
-                                VIEWER.resourceMap.set(resolved_uri, data_resolved)
-                            }  
-                        }
+                    if (geo.hasOwnProperty("geometry")) {
+                        //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
+                        VIEWER.resourceMap.set(data_uri, data_resolved)
+                        resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
+                        if(data_uri !== resolved_uri){
+                            //Then the id handed back a different object.  This is not good, somebody messed up their data
+                            VIEWER.resourceMap.set(resolved_uri, data_resolved)
+                        }  
                     }
-                    if(!geo.properties) geo.properties = {}
-                    geo.properties.__fromResource = t1
-                    //Essentially, this is our base case.  We have the geography object and do not need to recurse.  We just continue looping the keys.
-                    allPropertyInstances.push(geo)
                 }
+                if(!geo.properties) geo.properties = {}
+                geo.properties.__fromResource = t1
+                //Essentially, this is our base case.  We have the geography object and do not need to recurse.  We just continue looping the keys.
+                allPropertyInstances.push(geo)
             }
         }
     }
