@@ -35,9 +35,6 @@ VIEWER.possibleGeoProperties = ["birthPlace", "location"]
 //Viewer specific resources to consider in logic.  Set on init()
 VIEWER.supportedTypes = []
 
-//Properties to look into for more geography.
-VIEWER.recurseKeys = ["items"]
-
 //We only support IIIF resource types with IIIF Presentation API contexts.
 VIEWER.musical_map_contexts = ["https://musicalmaps.rerum.io/context.json", "http://musicalmaps.rerum.io/context.json"]
 
@@ -213,26 +210,6 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
         }
     }
     return allPropertyInstances
-}
-
-/**
- * For supplying latitude/longitude values via the coordinate number inputs.
- * Position the Leaflet map and update the diplayed coordinate text.
- * Note that order matters, so we are specifically saying what is Lat and what is Long.
- */
-VIEWER.updateGeometry = function(event) {
-    event.preventDefault()
-    let lat = clickedLat ? clickedLat : leafLat.value
-    lat = parseInt(lat * 1000000) / 1000000
-    let long = clickedLong ? clickedLong : leafLong.value
-    long = parseInt(long * 1000000) / 1000000
-    if (lat && long) {
-        VIEWER.mymap.setView([lat, long], 16)
-        let coords = `lat: ${leafLat.value}, lon: ${leafLong.value}`
-        document.getElementById("currentCoords").innerHTML = `[${coords}]`
-    }
-    leafLat.value = lat
-    leafLong.value = long
 }
 
 /**
