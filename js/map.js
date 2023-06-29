@@ -27,7 +27,7 @@ VIEWER.resource = {}
 VIEWER.mymap = {}
 
 //Supported Resource Types
-VIEWER.musicalMapTypes = ["Person", "Place", "Thing"]
+VIEWER.musicalMapTypes = ["Person", "Place", "Thing", "Event"]
 
 //Supported Resource Types
 VIEWER.possibleGeoProperties = ["birthPlace", "location"]
@@ -57,13 +57,16 @@ VIEWER.isJSON = function(obj) {
 }
 
 /**
- * Get and combine the GeoJSON from the provided geoProps.  Properties not listed in geoProps are ignored.
+ * Get and combine the GeoJSON from the provided entities and props to match on.  Properties not listed in geoProps are ignored.
  * If you come across a referenced value, attempt to dereference it.  If successful, embed it to go forward with (so as not to resolve it again)
  * 
  * Return the array of Feature Collections and/or Features
  */
 VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyInstances = [], setResource = true) {
-    //Check against the limits first.  If we reached any, break the recursion and return the results so far.
+    //Check against the limits first.  If we reached any, break all loops and recursion to return the results so far.
+    if(!expandedEntities){
+        return []
+    }
     if(VIEWER.resourceCount > VIEWER.resourceFindLimit){
         console.warn(`Resource processing limit [${VIEWER.resourceFindLimit}] reached. Make sure your resources do not contain circular references.`)
         return allPropertyInstances
@@ -120,8 +123,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                                             "en": [
                                                 `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
                                             ]
-                                        },
-                                        "seeAlso" : orig,
+                                        }
                                     }
                                 }    
                             }
@@ -169,7 +171,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                         if (geo.hasOwnProperty("features")) {
                             //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
                             VIEWER.resourceMap.set(data_uri, geo)
-                            resolved_uri = geo["@id"] ?? geo.id ?? "Yikes"
+                            resolved_uri = geo["@id"] ?? geo.id ?? ""
                             if(data_uri !== resolved_uri){
                                 //Then the id handed back a different object.  This is not good, somebody messed up their data
                                 VIEWER.resourceMap.set(resolved_uri, geo)
@@ -195,7 +197,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                         if (geo.hasOwnProperty("geometry")) {
                             //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
                             VIEWER.resourceMap.set(data_uri, data_resolved)
-                            resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? "Yikes"
+                            resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
                             if(data_uri !== resolved_uri){
                                 //Then the id handed back a different object.  This is not good, somebody messed up their data
                                 VIEWER.resourceMap.set(resolved_uri, data_resolved)
@@ -210,7 +212,6 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
             }
         }
     }
-
     return allPropertyInstances
 }
 
@@ -239,7 +240,7 @@ VIEWER.updateGeometry = function(event) {
  * We will also check for the navPlace context...but we will only warn the user if it isn't there.
  */
 VIEWER.verifyResource = function() {
-    let resourceType = VIEWER.resource.type ?? VIEWER.resource["@type"] ?? "Yikes"
+    let resourceType = VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
     if (VIEWER.supportedTypes.includes(resourceType)) {
         //Verification for IIIF Presentation API Defined Types
         //@context value is a string.
@@ -286,14 +287,59 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
         .catch(err => { return null })
 
     if (dataObj) {
-        VIEWER.resource = JSON.parse(JSON.stringify(dataObj))
+        VIEWER.resource = dataObj
+        const entityLabel = VIEWER.resource.name ?? VIEWER.resource.label ?? VIEWER.resource.title ?? "No Entity Label"
+        dataLabel.innerText = entityLabel
         if (!VIEWER.verifyResource()) {
             //We cannot reliably parse the features from this resource.  Return the empty array.
             return geoJSONFeatures
         }
-        geoJSONFeatures = await VIEWER.findAllFeatures(VIEWER.resource, VIEWER.possibleGeoProperties)
+        // TODO we need to get all the events this id is presentAt.  Each of those is an Event with location.
+        const query = {
+            "target" : VIEWER.httpsIdArray(dataURL),
+            "body.presentAt" : {$exists:true},
+            "__rerum.history.next":{ $exists: true, $eq: [] }
+        }
+
+        let entityEvents = await fetch("https://tinydev.rerum.io/app/query?limit=100&skip=0", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json; charset=utf-8"
+            },
+            body: JSON.stringify(query)
+        })
+        .then(r => r.json())
+        .then(pointers => {
+            let list = []
+            pointers.map(pa => {
+                // presentAt can be a String URI or an Array of String URIs, or null/undefined
+                if(pa.body && pa.body.presentAt){
+                    if(Array.isArray(pa.body.presentAt)){
+                        pa.body.presentAt.map(uri => list.push(fetch(uri).then(response => response.json())))
+                    }
+                    else{
+                        list.push(fetch(pa.body.presentAt).then(response => response.json()))
+                    }
+                }
+            })
+            return Promise.all(list)    
+        })
+        .catch(err => {
+            console.warn("There was an error looking for Events this entity was present at");
+            console.warn(err)
+            return []
+        })
+        // Sort the events by date
+        entityEvents = entityEvents.sort(function(a,b){return a.startDate - b.startDate})
+
+        // Make a flat array of all GeoJSON Features from the event.
+        for await (const event of entityEvents){
+            const geo = await VIEWER.findAllFeatures(event, VIEWER.possibleGeoProperties)
+            geoJSONFeatures = geoJSONFeatures.concat(geo)   
+        }
         geoJSONFeatures = geoJSONFeatures.reduce((prev, curr) => {
             //Referenced values were already resolved at this point.  If there are no features, there are no features :(
+            // For FeatureCollections, make sure its Features know what kind of resource they came from.
             if (curr.features) {
                 //The Feature Collection knows what resource it came from.  Make all of its Features know too.
                 if(curr.__fromResource){
@@ -305,8 +351,24 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
             }
             return prev.concat(curr)
         }, [])
+        //These are all points in order of time.  Make a Line out of them.
+        let lineStringFeature = {
+            "type" : "Feature",
+            "geometry":{
+                "type" : "LineString",
+                "coordinates" : []
+            },
+            "properties" : {
+                "__fromResource" : VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
+            }
+        }
+        geoJSONFeatures.map(f => {
+            lineStringFeature.geometry.coordinates.push(f.geometry.coordinates)
+        })
+        geoJSONFeatures.push(lineStringFeature)
         return geoJSONFeatures
-    } else {
+    } 
+    else {
         alert("Provided URI did not resolve and so was not dereferencable.  There is no data.")
         return geoJSONFeatures
     }
@@ -318,11 +380,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
  * @return {undefined}
  */
 VIEWER.init = async function() {
-    VIEWER.resourceTypes
-    // Don't let either viewer be a catch all for all types.
-    if(location.pathname.includes("annotation-viewer")) VIEWER.supportedTypes = Array.from(VIEWER.annotationTypes)
-    else{ VIEWER.supportedTypes = Array.from(VIEWER.musicalMapTypes) }
-
+    VIEWER.supportedTypes = Array.from(VIEWER.musicalMapTypes)
     let latlong = [12, 12] //default starting coords
     let geos = []
     let resource = {}
@@ -330,7 +388,9 @@ VIEWER.init = async function() {
     let dataInURL = VIEWER.getURLParameter("data")
     if (dataInURL) {
         needs.classList.add("is-hidden")
+        loadInput.classList.add("is-hidden")
         viewerBody.classList.remove("is-hidden")
+        reset.classList.remove("is-hidden")
         geoJsonData = await VIEWER.consumeForGeoJSON(dataInURL)
             .then(geoMarkers => { return geoMarkers })
             .catch(err => {
@@ -386,7 +446,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
     VIEWER.mymap = L.map('leafletInstanceContainer', {
         center: coords,
         zoom: 2,
-        layers: [osm, esri_street, topomap, mapbox_satellite_layer]
+        layers: [esri_street]
     })
 
     let baseMaps = {
@@ -412,55 +472,60 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
     L.geoJSON(geoMarkers, {
             pointToLayer: function(feature, latlng) {
                 let __fromResource = feature.properties.__fromResource ?? ""
-                switch (__fromResource) {
-                    case "Person":
-                        appColor = "blue"
-                        break
-                    case "Place":
-                        appColor = "purple"
-                        break
-                    case "Thing":
-                        appColor = "yellow"
-                        break
-                    case "Event":
-                        appColor = "#008080"
-                        break
-                    default:
-                        appColor = "red"
-                }
+                appColor = "purple"
+                // switch (__fromResource) {
+                //     case "Person":
+                //         appColor = "blue"
+                //         break
+                //     case "Place":
+                //         appColor = "purple"
+                //         break
+                //     case "Thing":
+                //         appColor = "yellow"
+                //         break
+                //     case "Event":
+                //         appColor = "#008080"
+                //         break
+                //     default:
+                //         appColor = "red"
+                // }
                 return L.circleMarker(latlng, {
                     radius: 6,
                     fillColor: appColor,
                     color: appColor,
                     weight: 1,
                     opacity: 1,
-                    fillOpacity: 1
+                    fillOpacity: 1,
+                    zIndex : 2
                 })
             },
             style: function(feature) {
                 let __fromResource = feature.properties.__fromResource ?? ""
-                switch (__fromResource) {
-                    case "Person":
-                        appColor = "blue"
-                        break
-                    case "Place":
-                        appColor = "purple"
-                        break
-                    case "Thing":
-                        appColor = "yellow"
-                        break
-                    case "Event":
-                        appColor = "#008080"
-                        break
-                    default:
-                        appColor = "red"
-                }
+                appColor = "purple"
+                // switch (__fromResource) {
+                //     case "Person":
+                //         appColor = "blue"
+                //         break
+                //     case "Place":
+                //         appColor = "purple"
+                //         break
+                //     case "Thing":
+                //         appColor = "yellow"
+                //         break
+                //     case "Event":
+                //         appColor = "#008080"
+                //         break
+                //     default:
+                //         appColor = "red"
+                // }
                 const ft = feature.geometry.type ?? feature.geometry["@type"] ?? ""
                 if (ft !== "Point") {
                     return {
                         color: appColor,
                         fillColor: appColor,
-                        fillOpacity: 0.09
+                        opacity: 0.5,
+                        fillOpacity: 0.5,
+                        interactive: false
                     }
                 }
             },
@@ -484,30 +549,30 @@ VIEWER.formatPopup = function(feature, layer) {
         if (feature.properties.entity_label) {
             popupContent += `<div class="featureInfo"> ${feature.properties.entity_label} </div>`
         }
-        // if (feature.properties.location_label){
-        //     //This should be a language map, but might be a string...
-        //     if(typeof feature.properties.location_label === "string"){
-        //         //console.warn("Detected a 'label' property with a string value.  'label' must be a language map.")
-        //         stringToLangMap.none.push(feature.properties.location_label)
-        //         feature.properties.location_label = JSON.parse(JSON.stringify(stringToLangMap))
-        //     }
-        //     langs = Object.keys(feature.properties.location_label)
-        //     if(langs.length > 0){
-        //         popupContent += `<div class="featureInfo">`
-        //         //Brute force loop all the languages and add them together, separated by their language keys.
-        //         for (const langKey in feature.properties.location_label) {
-        //             let allLabelsForLang =
-        //                 feature.properties.location_label[langKey].length > 1 ? feature.properties.location_label[langKey].join(" -- ") :
-        //                 feature.properties.location_label[langKey]
-        //             popupContent += `<b>${langKey}: ${allLabelsForLang}</b></br>`
-        //             if(langs.length > 1 && i<langs.length-1){
-        //                 popupContent += `</br>`
-        //             }
-        //             i++
-        //         }
-        //         popupContent += `</div>`    
-        //     }
-        // }
+        if (feature.properties.location_label){
+            //This should be a language map, but might be a string...
+            if(typeof feature.properties.location_label === "string"){
+                //console.warn("Detected a 'label' property with a string value.  'label' must be a language map.")
+                stringToLangMap.none.push(feature.properties.location_label)
+                feature.properties.location_label = JSON.parse(JSON.stringify(stringToLangMap))
+            }
+            langs = Object.keys(feature.properties.location_label)
+            if(langs.length > 0){
+                popupContent += `<div class="featureInfo">`
+                //Brute force loop all the languages and add them together, separated by their language keys.
+                for (const langKey in feature.properties.location_label) {
+                    let allLabelsForLang =
+                        feature.properties.location_label[langKey].length > 1 ? feature.properties.location_label[langKey].join(" -- ") :
+                        feature.properties.location_label[langKey]
+                    popupContent += `<b>${langKey}: ${allLabelsForLang}</b></br>`
+                    if(langs.length > 1 && i<langs.length-1){
+                        popupContent += `</br>`
+                    }
+                    i++
+                }
+                popupContent += `</div>`    
+            }
+        }
         if (feature.properties.summary) {
             stringToLangMap = {"none":[]}
             i = 0
@@ -537,10 +602,10 @@ VIEWER.formatPopup = function(feature, layer) {
             let thumbnail = feature.properties.thumbnail[0].id ?? feature.properties.thumbnail[0]["@id"] ?? ""
             popupContent += `<img src="${thumbnail}"\></br>`
         }
-        if (feature.properties.seeAlso) {
-            let seeURI = feature.properties.seeAlso ?? ""
-            popupContent += `See <a href="${feature.properties.seeAlso}" target="_blank">${feature.properties.seeAlso}</a>`
-        }
+        // if (feature.properties.seeAlso) {
+        //     let seeURI = feature.properties.seeAlso ?? ""
+        //     popupContent += `See <a href="${feature.properties.seeAlso}" target="_blank">${feature.properties.seeAlso}</a>`
+        // }
         
         layer.bindPopup(popupContent)
     }
@@ -554,6 +619,12 @@ VIEWER.getURLParameter = function(variable) {
         if (pair[0] == variable) { return pair[1]; }
     }
     return (false);
+}
+
+VIEWER.httpsIdArray = function (id,justArray) {
+    if (!id.startsWith("http")) return justArray ? [ id ] : id
+    if (id.startsWith("https://")) return justArray ? [ id, id.replace('https','http') ] : { $in: [ id, id.replace('https','http') ] }
+    return justArray ? [ id, id.replace('http','https') ] : { $in: [ id, id.replace('http','https') ] }
 }
 
 VIEWER.init()

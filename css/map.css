@@ -174,7 +174,19 @@ input[type="checkbox"]{
 }
 
 .text-dots{
-    border-bottom: 2px dotted var(--color-primary);
+    border-bottom: 2px dotted black;
+}
+
+#viewerBody, #needs{
+    padding: 1em 0em;
+}
+
+#resourceURI{
+    width: 50em;
+}
+
+.is-hidden{
+    display: none;
 }
 
 /* A weakness is the sidewise mobile phone, that map needs to be short! */
