@@ -11,7 +11,7 @@ VIEWER.resourceMap = new Map()
 //Keep track of how many resources you have fetched
 VIEWER.resourceFetchCount = 0
 
-//Keep track of how many resources you are processing for navPlace
+//Keep track of how many resources have been processed for geography
 VIEWER.resourceCount = 0
 
 //Once you have fetched this many resources, fetch no more.  Helps stop infinite loops from circular references.
@@ -35,7 +35,7 @@ VIEWER.possibleGeoProperties = ["birthPlace", "location"]
 //Viewer specific resources to consider in logic.  Set on init()
 VIEWER.supportedTypes = []
 
-//We only support IIIF resource types with IIIF Presentation API contexts.
+//We only support Musical Map resource types with Musical Map contexts.
 VIEWER.musical_map_contexts = ["https://musicalmaps.rerum.io/context.json", "http://musicalmaps.rerum.io/context.json"]
 
 //GeoJSON contexts to verify
@@ -213,13 +213,11 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
 }
 
 /**
- * Check if the resource is IIIF Presentation API 3.  If not, the viewer cannot process it.
- * We will also check for the navPlace context...but we will only warn the user if it isn't there.
+ * Check if the resource is a Musical Map resource.  If not, the viewer cannot process it.
  */
 VIEWER.verifyResource = function() {
     let resourceType = VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
     if (VIEWER.supportedTypes.includes(resourceType)) {
-        //Verification for IIIF Presentation API Defined Types
         //@context value is a string.
         if(!VIEWER.resource["@context"]){
             alert("The resource provided does not have a linked data context.  The resource will be processed, but please fix this ASAP.")
@@ -230,7 +228,7 @@ VIEWER.verifyResource = function() {
             }
             //return false
         }
-        //@context value is an array, one item in the array needs to be one of the supported presentation api uris.  
+        //@context value is an array
         else if (Array.isArray(VIEWER.resource["@context"]) && VIEWER.resource["@context"].length > 0) {
             let includes_musical_map_context = VIEWER.resource["@context"].some(context => {
                 return VIEWER.musical_map_contexts.includes(context)
@@ -251,7 +249,7 @@ VIEWER.verifyResource = function() {
 
 
 /**
- * Given the URI of a web resource, resolve it and get the GeoJSON by discovering navPlace properties.
+ * Given the URI of a web resource, resolve it and get the GeoJSON by discovering app registered geographic properties.
  * @param {type} URI of the web resource to dereference and consume.
  * @return {Array}
  */
@@ -395,7 +393,7 @@ VIEWER.init = async function() {
 /**
  * Inititalize a Leaflet Web Map with a standard base map. Give it GeoJSON to draw.
  * In this case, the GeoJSON are all Features take from Feature Collections.
- * These Feature Collections were values of navPlace properties or Web Annotation bodies.
+ * These Feature Collections were values of location properties from Events.
  * All Features from the outer most objects and their children are present.
  * This may have caused duplicates in some cases.
  */
