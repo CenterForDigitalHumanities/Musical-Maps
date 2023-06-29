@@ -497,13 +497,17 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                 // }
                 const ft = feature.geometry.type ?? feature.geometry["@type"] ?? ""
                 if (ft !== "Point") {
-                    return {
+                    let options = {
                         color: appColor,
                         fillColor: appColor,
                         opacity: 0.5,
                         fillOpacity: 0.5,
                         interactive: false
                     }
+                    if(ft === "LineString"){
+                        options.dashArray = 4
+                    }
+                    return options
                 }
             },
             onEachFeature: VIEWER.formatPopup
