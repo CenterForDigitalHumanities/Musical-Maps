@@ -349,7 +349,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
                 "__fromResource" : VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
             }
         }
-        geoJSONFeatures.map(f => {
+        geoJSONFeatures.forEach(f => {
             lineStringFeature.geometry.coordinates.push(f.geometry.coordinates)
         })
         geoJSONFeatures.push(lineStringFeature)
