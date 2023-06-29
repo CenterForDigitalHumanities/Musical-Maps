@@ -289,7 +289,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
     if (dataObj) {
         VIEWER.resource = dataObj
         const entityLabel = VIEWER.resource.name ?? VIEWER.resource.label ?? VIEWER.resource.title ?? "No Entity Label"
-        dataLabel.innerText = entityLabel
+        dataLabel.setAttribute("deer-id", dataURL)
         if (!VIEWER.verifyResource()) {
             //We cannot reliably parse the features from this resource.  Return the empty array.
             return geoJSONFeatures
