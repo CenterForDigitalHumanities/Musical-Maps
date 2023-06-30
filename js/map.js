@@ -124,7 +124,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                             }    
                         }
                         else{
-                            return {}
+                            throw new Error(`Latitude and Longitude was missing from geonames data at '${orig}'`)
                         }
                     })
                     .catch(err => {
