@@ -3,45 +3,45 @@
  * https://github.com/thehabes 
  */
 
-let VIEWER = {}
+let MAPVIEWER = {}
 
 //Keep tracked of fetched resources.  Do not fetch resources you have already resolved.
-VIEWER.resourceMap = new Map()
+MAPVIEWER.resourceMap = new Map()
 
 //Keep track of how many resources you have fetched
-VIEWER.resourceFetchCount = 0
+MAPVIEWER.resourceFetchCount = 0
 
 //Keep track of how many resources have been processed for geography
-VIEWER.resourceCount = 0
+MAPVIEWER.resourceCount = 0
 
 //Once you have fetched this many resources, fetch no more.  Helps stop infinite loops from circular references.
-VIEWER.resourceFetchLimit = 1000
+MAPVIEWER.resourceFetchLimit = 1000
 
 //Once you have processed this many resources, process no more.  Helps stop infinite loops from circular references.
-VIEWER.resourceFindLimit = 1000
+MAPVIEWER.resourceFindLimit = 1000
 
 //The resource supplied via the iiif-content paramater.  All referenced values that could be resolved are resolved and embedded.
-VIEWER.resource = {}
+MAPVIEWER.resource = {}
 
 //For Leaflet
-VIEWER.mymap = {}
+MAPVIEWER.mymap = {}
 
 //Supported Resource Types
-VIEWER.musicalMapTypes = ["Person", "Place", "Thing", "Event"]
+MAPVIEWER.musicalMapTypes = ["Person", "Place", "Thing", "Event"]
 
 //Supported Resource Types
-VIEWER.possibleGeoProperties = ["location"]
+MAPVIEWER.possibleGeoProperties = ["location"]
 
-//Viewer specific resources to consider in logic.  Set on init()
-VIEWER.supportedTypes = []
+//MAPVIEWER specific resources to consider in logic.  Set on init()
+MAPVIEWER.supportedTypes = []
 
 //We only support Musical Map resource types with Musical Map contexts.
-VIEWER.musical_map_contexts = ["https://musicalmaps.rerum.io/context.json", "http://musicalmaps.rerum.io/context.json"]
+MAPVIEWER.musical_map_contexts = ["https://musicalmaps.rerum.io/context.json", "http://musicalmaps.rerum.io/context.json"]
 
 //GeoJSON contexts to verify
-VIEWER.geojson_contexts = ["https://geojson.org/geojson-ld/geojson-context.jsonld", "http://geojson.org/geojson-ld/geojson-context.jsonld"]
+MAPVIEWER.geojson_contexts = ["https://geojson.org/geojson-ld/geojson-context.jsonld", "http://geojson.org/geojson-ld/geojson-context.jsonld"]
 
-VIEWER.isJSON = function(obj) {
+MAPVIEWER.isJSON = function(obj) {
     let r = false
     let json = {}
     try {
@@ -57,15 +57,19 @@ VIEWER.isJSON = function(obj) {
  * Get and combine the GeoJSON from the provided entities and props to match on.  Properties not listed in geoProps are ignored.
  * If you come across a referenced value, attempt to dereference it.  If successful, embed it to go forward with (so as not to resolve it again)
  * 
- * Return the array of Feature Collections and/or Features
+ * @param expandedEntities An array of JSON objects that have been expanded with their decriptive data.
+ * @param geoProps An array of properties to check for GeoJSON.
+ * @param allPropertyInstances The array of GeoJSON objects to return.  It may contain GeoJSON already.
+ * 
+ * @return the array of Feature Collections and/or Features
  */
-VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyInstances = [], setResource = true) {
+MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyInstances = []) {
     //Check against the limits first.  If we reached any, break all loops and recursion to return the results so far.
     if(!expandedEntities){
         return []
     }
-    if(VIEWER.resourceCount > VIEWER.resourceFindLimit){
-        console.warn(`Resource processing limit [${VIEWER.resourceFindLimit}] reached. Make sure your resources do not contain circular references.`)
+    if(MAPVIEWER.resourceCount > MAPVIEWER.resourceFindLimit){
+        console.warn(`Resource processing limit [${MAPVIEWER.resourceFindLimit}] reached. Make sure your resources do not contain circular references.`)
         return allPropertyInstances
     }
     let resolved_uri = ""
@@ -78,20 +82,20 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
     for await (const data of expandedEntities){
         const t1 = data.type ?? data["@type"] ?? ""
         const entityLabel = data.name ?? data.label ?? data.title ?? "No Entity Label"
-        VIEWER.resourceCount += 1
-        if(VIEWER.resourceCount > VIEWER.resourceFindLimit){
-            console.warn(`geography lookup limit [${VIEWER.resourceFindLimit}] reached`)
+        MAPVIEWER.resourceCount += 1
+        if(MAPVIEWER.resourceCount > MAPVIEWER.resourceFindLimit){
+            console.warn(`geography lookup limit [${MAPVIEWER.resourceFindLimit}] reached`)
             return allPropertyInstances
         }
         //Loop the keys, looks for those properties with geography values
         for await (const prop of geoProps){
-            if(allPropertyInstances.length > VIEWER.resourceFindLimit){
-                console.warn(`${property} property aggregation limit [${VIEWER.resourceFindLimit}] reached`)
+            if(allPropertyInstances.length > MAPVIEWER.resourceFindLimit){
+                console.warn(`${property} property aggregation limit [${MAPVIEWER.resourceFindLimit}] reached`)
                 return allPropertyInstances
             }
             let geo = data[prop]
             if(geo === null || geo === undefined){
-                geo = {}
+                continue
             }
             if(typeof geo === "string"){
                 // This could be a URI.  Attempt to resolve it
@@ -106,6 +110,9 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                     .then(resp => resp.json())
                     .then(geoNamesJson => {
                         // We need to turn this into a GeoJSON object
+                        // Other Event metadata to anticipate
+                            // https://schema.org/image
+                            // https://schema.org/url
                         if(geoNamesJson.lng && geoNamesJson.lat){
                             return {
                                 "type" : "Feature",
@@ -133,7 +140,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                     })
 
                     // Only if we ended up with a good Point Feature??
-                    VIEWER.resourceMap.set(orig, geo)    
+                    MAPVIEWER.resourceMap.set(orig, geo)    
                 }
                 else{
                     // Just some URI that we need the JSON of.  It should result in a Feature or FeatureCollection
@@ -145,7 +152,7 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
                     })
                     if(geo.id || geo["@id"]){
                         const geoid = geo.id ?? geo["@id"]
-                        VIEWER.resourceMap.set(geoid, geo)    
+                        MAPVIEWER.resourceMap.set(geoid, geo)    
                     } 
                 }
             }
@@ -166,11 +173,11 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
 
                     if (geo.hasOwnProperty("features")) {
                         //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                        VIEWER.resourceMap.set(data_uri, geo)
+                        MAPVIEWER.resourceMap.set(data_uri, geo)
                         resolved_uri = geo["@id"] ?? geo.id ?? ""
                         if(data_uri !== resolved_uri){
                             //Then the id handed back a different object.  This is not good, somebody messed up their data
-                            VIEWER.resourceMap.set(resolved_uri, geo)
+                            MAPVIEWER.resourceMap.set(resolved_uri, geo)
                         }  
                         geo.__fromResource = t1
                         allPropertyInstances.push(geo)
@@ -192,17 +199,16 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
 
                     if (geo.hasOwnProperty("geometry")) {
                         //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                        VIEWER.resourceMap.set(data_uri, data_resolved)
+                        MAPVIEWER.resourceMap.set(data_uri, data_resolved)
                         resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
                         if(data_uri !== resolved_uri){
                             //Then the id handed back a different object.  This is not good, somebody messed up their data
-                            VIEWER.resourceMap.set(resolved_uri, data_resolved)
+                            MAPVIEWER.resourceMap.set(resolved_uri, data_resolved)
                         }  
                     }
                 }
                 if(!geo.properties) geo.properties = {}
                 geo.properties.__fromResource = t1
-                //Essentially, this is our base case.  We have the geography object and do not need to recurse.  We just continue looping the keys.
                 allPropertyInstances.push(geo)
             }
         }
@@ -211,34 +217,42 @@ VIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyI
 }
 
 /**
- * Check if the resource is a Musical Map resource.  If not, the viewer cannot process it.
+ * Check if the resource is a Musical Map resource.  If not, the MAPVIEWER cannot process it.
+ * Verify against Musical Map archtypes and the JSON-LD context.
+ * For now, @context mismatches only result in a warning and the Entity is still processed.
+ * 
+ * @return boolean
  */
-VIEWER.verifyResource = function() {
-    let resourceType = VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
-    if (VIEWER.supportedTypes.includes(resourceType)) {
+MAPVIEWER.verifyResource = function() {
+    let resourceType = MAPVIEWER.resource.type ?? MAPVIEWER.resource["@type"] ?? ""
+    if (MAPVIEWER.supportedTypes.includes(resourceType)) {
         //@context value is a string.
-        if(!VIEWER.resource["@context"]){
-            alert("The resource provided does not have a linked data context.  The resource will be processed, but please fix this ASAP.")
+        if(!MAPVIEWER.resource["@context"]){
+            console.warn("The resource provided does not have a linked data context.  The resource will be processed, but please fix this ASAP.")
+            //alert("The resource provided does not have a linked data context.  The resource will be processed, but please fix this ASAP.")
         }
-        else if (typeof VIEWER.resource["@context"] === "string") {
-            if (!VIEWER.musical_map_contexts.includes(VIEWER.resource["@context"])) {
-                alert("The top level object you provided does not contain the Musical Maps JSON-LD context.  Ensure this is correct for your resource.  Processing will continue.")
+        else if (typeof MAPVIEWER.resource["@context"] === "string") {
+            if (!MAPVIEWER.musical_map_contexts.includes(MAPVIEWER.resource["@context"])) {
+                console.warn("The top level object you provided does not contain the Musical Maps JSON-LD context.  Ensure this is correct for your resource.  Processing will continue.")
+                //alert("The top level object you provided does not contain the Musical Maps JSON-LD context.  Ensure this is correct for your resource.  Processing will continue.")
             }
             //return false
         }
         //@context value is an array
-        else if (Array.isArray(VIEWER.resource["@context"]) && VIEWER.resource["@context"].length > 0) {
-            let includes_musical_map_context = VIEWER.resource["@context"].some(context => {
-                return VIEWER.musical_map_contexts.includes(context)
+        else if (Array.isArray(MAPVIEWER.resource["@context"]) && MAPVIEWER.resource["@context"].length > 0) {
+            let includes_musical_map_context = MAPVIEWER.resource["@context"].some(context => {
+                return MAPVIEWER.musical_map_contexts.includes(context)
             })
             if (!includes_musical_map_context) {
-                alert("The resource type does not have the Musical Maps @context.")
+                console.warn("The resource type does not have the Musical Maps @context.")
+                //alert("The resource type does not have the Musical Maps @context.")
             }
             //return includes_musical_map_context
         }
         //@context value is a custom object -- NOT SUPPORTED
-        else if (VIEWER.isJSON(VIEWER.resource["@context"])) {
-            alert("We cannot support custom context objects.  The resource will be processed, but please use the Musical Maps Linked Data context reference.")
+        else if (MAPVIEWER.isJSON(MAPVIEWER.resource["@context"])) {
+            console.warn("We cannot support custom context objects.  The resource will be processed, but please use the Musical Maps Linked Data context reference.")
+            //alert("We cannot support custom context objects.  The resource will be processed, but please use the Musical Maps Linked Data context reference.")
             //return false
         }    
         return true
@@ -248,10 +262,10 @@ VIEWER.verifyResource = function() {
 
 /**
  * Given the URI of a web resource, resolve it and get the GeoJSON by discovering app registered geographic properties.
- * @param {type} URI of the web resource to dereference and consume.
+ * @param {String} dataURL URI of the web resource to dereference and consume.
  * @return {Array}
  */
-VIEWER.consumeForGeoJSON = async function(dataURL) {
+MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
     let geoJSONFeatures = []
 
     let dataObj = await fetch(dataURL, {"cache":"default"})
@@ -260,16 +274,16 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
         .catch(err => { return null })
 
     if (dataObj) {
-        VIEWER.resource = dataObj
-        const entityLabel = VIEWER.resource.name ?? VIEWER.resource.label ?? VIEWER.resource.title ?? "No Entity Label"
+        MAPVIEWER.resource = dataObj
+        const entityLabel = MAPVIEWER.resource.name ?? MAPVIEWER.resource.label ?? MAPVIEWER.resource.title ?? "No Entity Label"
         dataLabel.setAttribute("deer-id", dataURL)
-        if (!VIEWER.verifyResource()) {
+        if (!MAPVIEWER.verifyResource()) {
             //We cannot reliably parse the features from this resource.  Return the empty array.
             return geoJSONFeatures
         }
         // TODO we need to get all the events this id is presentAt.  Each of those is an Event with location.
         const query = {
-            "target" : VIEWER.httpsIdArray(dataURL),
+            "target" : MAPVIEWER.httpsIdArray(dataURL),
             "body.presentAt" : {$exists:true},
             "__rerum.history.next":{ $exists: true, $eq: [] }
         }
@@ -319,7 +333,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
 
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
-            const geo = await VIEWER.findAllFeatures(event, VIEWER.possibleGeoProperties)
+            const geo = await MAPVIEWER.findAllFeatures(event, MAPVIEWER.possibleGeoProperties)
             geoJSONFeatures = geoJSONFeatures.concat(geo)   
         }
         geoJSONFeatures = geoJSONFeatures.reduce((prev, curr) => {
@@ -344,7 +358,7 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
                 "coordinates" : []
             },
             "properties" : {
-                "__fromResource" : VIEWER.resource.type ?? VIEWER.resource["@type"] ?? ""
+                "__fromResource" : MAPVIEWER.resource.type ?? MAPVIEWER.resource["@type"] ?? ""
             }
         }
         geoJSONFeatures.forEach(f => {
@@ -361,22 +375,20 @@ VIEWER.consumeForGeoJSON = async function(dataURL) {
 
 /**
  * Initialize the application.
- * @param {type} view
- * @return {undefined}
  */
-VIEWER.init = async function() {
-    VIEWER.supportedTypes = Array.from(VIEWER.musicalMapTypes)
+MAPVIEWER.init = async function() {
+    MAPVIEWER.supportedTypes = Array.from(MAPVIEWER.musicalMapTypes)
     let latlong = [12, 12] //default starting coords
     let geos = []
     let resource = {}
     let geoJsonData = []
-    let dataInURL = VIEWER.getURLParameter("data")
+    let dataInURL = MAPVIEWER.getURLParameter("data")
     if (dataInURL) {
         needs.classList.add("is-hidden")
         loadInput.classList.add("is-hidden")
         viewerBody.classList.remove("is-hidden")
         reset.classList.remove("is-hidden")
-        geoJsonData = await VIEWER.consumeForGeoJSON(dataInURL)
+        geoJsonData = await MAPVIEWER.consumeForGeoJSON(dataInURL)
             .then(geoMarkers => { return geoMarkers })
             .catch(err => {
                 console.error(err)
@@ -384,18 +396,17 @@ VIEWER.init = async function() {
             })
     }
     let formattedGeoJsonData = geoJsonData.flat(1) //AnnotationPages and FeatureCollections cause arrays in arrays.  
-    //Abstracted.  Maybe one day you want to VIEWER.initializeOtherWebMap(latlong, allGeos)
-    VIEWER.initializeLeaflet(latlong, formattedGeoJsonData)
+    //Abstracted.  Maybe one day you want to MAPVIEWER.initializeOtherWebMap(latlong, allGeos)
+    MAPVIEWER.initializeLeaflet(latlong, formattedGeoJsonData)
 }
 
 /**
  * Inititalize a Leaflet Web Map with a standard base map. Give it GeoJSON to draw.
- * In this case, the GeoJSON are all Features take from Feature Collections.
- * These Feature Collections were values of location properties from Events.
- * All Features from the outer most objects and their children are present.
- * This may have caused duplicates in some cases.
+ * 
+ * @param coords A long,lat coordinate array for what geography the viewer should start centralized on
+ * @param geoMarkers A flat array of GeoJSON FeatureCollection and Feature objects to draw.
  */
-VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
+MAPVIEWER.initializeLeaflet = async function(coords, geoMarkers) {
     
     let mapbox_satellite_layer=
     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoidGhlaGFiZXMiLCJhIjoiY2pyaTdmNGUzMzQwdDQzcGRwd21ieHF3NCJ9.SSflgKbI8tLQOo2DuzEgRQ', {
@@ -428,7 +439,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
         maxZoom: 19
     })
 
-    VIEWER.mymap = L.map('leafletInstanceContainer', {
+    MAPVIEWER.mymap = L.map('leafletInstanceContainer', {
         center: coords,
         zoom: 2,
         layers: [esri_street]
@@ -443,7 +454,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
         "USGS Topo + Street": USGS_top_streets,
         "Mapbox Satellite": mapbox_satellite_layer
     }
-    let layerControl = L.control.layers(baseMaps, {}).addTo(VIEWER.mymap)
+    let layerControl = L.control.layers(baseMaps, {}).addTo(MAPVIEWER.mymap)
 
     // let overlayMaps = {
     //     "Cities": osm,
@@ -451,7 +462,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
     //     "Satellite" : mapbox_satellite_layer,
     //     "Topography" : topomap
     // };
-    //var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(VIEWER.mymap)
+    //var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(MAPVIEWER.mymap)
 
     let appColor = "#008080"
     L.geoJSON(geoMarkers, {
@@ -517,9 +528,9 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                     return options
                 }
             },
-            onEachFeature: VIEWER.formatPopup
+            onEachFeature: MAPVIEWER.formatPopup
         })
-        .addTo(VIEWER.mymap)
+        .addTo(MAPVIEWER.mymap)
     leafletInstanceContainer.style.backgroundImage = "none"
     loadingMessage.classList.add("is-hidden")
 }
@@ -528,7 +539,7 @@ VIEWER.initializeLeaflet = async function(coords, geoMarkers) {
  * Define what information from each Feature belongs in the popup
  * that appears.  We want to show labels, summaries and thumbnails.
  */
-VIEWER.formatPopup = function(feature, layer) {
+MAPVIEWER.formatPopup = function(feature, layer) {
     let popupContent = ""
     let i = 0
     let langs = []
@@ -560,42 +571,12 @@ VIEWER.formatPopup = function(feature, layer) {
                 }
                 popupContent += `</div>`    
             }
-        }
-        if (feature.properties.summary) {
-            stringToLangMap = {"none":[]}
-            i = 0
-            if(typeof feature.properties.summary === "string"){
-                //console.warn("Detected a 'summary' property with a string value.  'summary' must be a language map.")
-                stringToLangMap.none.push(feature.properties.summary)
-                feature.properties.summary = JSON.parse(JSON.stringify(stringToLangMap))
-            }
-            langs = Object.keys(feature.properties.summary)
-            if(langs.length > 0){
-                popupContent += `<div class="featureInfo">`
-                //Brute force loop all the languages and add them together, separated by their language keys.
-                for (const langKey in feature.properties.summary) {
-                    let allSummariesForLang =
-                        feature.properties.summary[langKey].length > 1 ? feature.properties.summary[langKey].join(" -- ") :
-                        feature.properties.summary[langKey]
-                    popupContent += `<b>${langKey}: ${allSummariesForLang}</b></br>`
-                    if(langs.length > 1 && i<langs.length-1){
-                        popupContent += `</br>`
-                    }
-                    i++
-                }
-                popupContent += `</div>`
-            }
-        }
-        // This always makes the pop ups better.  Is there a way to get one from the Event?
-        if (feature.properties.thumbnail) {
-            let thumbnail = feature.properties.thumbnail[0].id ?? feature.properties.thumbnail[0]["@id"] ?? ""
-            popupContent += `<img src="${thumbnail}"\></br>`
-        }       
+        }   
         layer.bindPopup(popupContent)
     }
 }
 
-VIEWER.getURLParameter = function(variable) {
+MAPVIEWER.getURLParameter = function(variable) {
     var query = window.location.search.substring(1);
     var vars = query.split("&");
     for (var i = 0; i < vars.length; i++) {
@@ -605,10 +586,10 @@ VIEWER.getURLParameter = function(variable) {
     return (false);
 }
 
-VIEWER.httpsIdArray = function (id,justArray) {
+MAPVIEWER.httpsIdArray = function (id,justArray) {
     if (!id.startsWith("http")) return justArray ? [ id ] : id
     if (id.startsWith("https://")) return justArray ? [ id, id.replace('https','http') ] : { $in: [ id, id.replace('https','http') ] }
     return justArray ? [ id, id.replace('http','https') ] : { $in: [ id, id.replace('http','https') ] }
 }
 
-VIEWER.init()
+MAPVIEWER.init()
