@@ -90,7 +90,7 @@ class Entity extends Object {
         if(this.id.startsWith('#')) {
             return Promise.resolve(this)
         }
-        const results = withAssertions ? fetch(DEER.URLS.QUERY,{
+        const results = withAssertions ? fetch(DEER.URLS.QUERY+"?limit=100&skip=0",{
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(obj)
