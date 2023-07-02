@@ -22,35 +22,51 @@
 <body is="mm-content">
     <div class="container" slot="content">
         <div id="viewerBody" class="is-hidden">
-            <p>
-                This viewer is for W3C Web Annotation 'Annotation' and 'AnnotationPage' types.  There is also a viewer specifically for IIIF Presentation API Defined Types.  <a class="text-dots" target="_blank" href="index.html">Click here to learn more</a>.
-            </p>
             <p> 
-                Clicking any shape on the map will show applicable information about the resource that shape represents.  
+                Clicking any point on the map will show applicable information about the entity that point represents.  
+                These locations come from Events.  A path is included to connect the points in chronological order.
                 Pan and zoom are supported.
             </p>
 
+            <p> 
+                You are viewing locations from events associated with <deer-view deer-lazy="true" deer-template="label" id="dataLabel" class="text-bold text-dots"> loading... </deer-view>
+            </p>
+
             <div id="leafletInstanceContainer">
-                <div id="loadingMessage" style="text-align: center;">Gathering Resource Data From Around The World...</div>
+                <div id="loadingMessage" style="text-align: center;">Gathering Musical Data From Around The World...</div>
             </div>
         </div>
         <div id="needs">
             <p class="howTo"> 
-                It looks like you haven't provided a URI.  If you are not using the URL parameter <code>?iiif-content=</code> or <code>?data=</code>, you can supply a URI here.  
-                <input id="resourceURI" type="text"/>
+                It looks like you haven't provided a URI.  If you are not using the URL parameter <code>?data=</code>, you can supply a URI here.<br>  
+                URI: <input id="resourceURI" type="text"/>
             </p>
         </div>
         <div cstyle="margin-top: 1em;">
             <div class="row">
                 <div id="options" class="col-10">
                     <input id="loadInput" type="button" onclick="loadURI(event)" value="Load Resource" />
-                    <input type="button" onclick="startOver(event)" value="Start Over" />
+                    <input id="reset" type="button" class="is-hidden" onclick="startOver(event)" value="Start Over" />
                 </div>
             </div>
         </div>
     </div>
     <script>
+        function loadURI(){
+            let url = resourceURI.value ? resourceURI.value : getURLParameter("iiif-content")
+            if(url){
+                let contentState = "?data="+url
+                url = window.location.href.split('?')[0] + contentState
+                window.location = url
+            }
+            else{
+                alert("You must supply a URI via the URl parameter ?data= or supply a value in the text input.")
+            }
+        }
 
+        function startOver(){
+            window.location = window.location.origin + window.location.pathname
+        }
     </script>
 </body>
 
