@@ -7,12 +7,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
     <script src="js/main.js" type="module"></script>
+    <script src="js/deer/js/deer.js" type="module"></script>
     <script src="js/layout.js"></script>
     <title>Death Event - Musical Maps of the World</title>
 </head>
 
 <body is="mm-content">
     <div class="container" slot="content">
+
+        <deer-a class="btn btn-secondary" deer-link="person.html#" hash-id>Profile </deer-a>
+
         <h3>
             Describe the Death event
         </h3>
@@ -53,7 +57,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Create Death 🎂</button>
+            <button type="submit" class="btn btn-primary">Create Death</button>
         </form>
 
         <form deer-type="Person" hash-id id="person">
@@ -61,7 +65,7 @@
             <div class="row">
                 <div class="form-group col">
                     <label for="presentAt">Present At</label>
-                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt" deer-listening="DOD">
+                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
                 </div>
             </div>
             <div class="row">
