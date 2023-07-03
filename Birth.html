@@ -32,88 +32,102 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="name">Name</label>
-                    <input type="text" name="name" deer-key="name" class="form-control" placeholder="Enter a label for this Event">
+                    <input type="text" name="name" deer-key="name" class="form-control"
+                        placeholder="Enter a label for this Event">
                 </div>
                 <div class="form-group col-md-6">
                     <label for="location">Event location</label>
-                    <input id="geoNameInput" type="url" class="form-control" deer-key="location" name="location" required>
+                    <input id="geoNameInput" type="url" class="form-control" deer-key="location" name="location"
+                        required>
                     <a id="geoNameLink" target="_blank" title="Open search in a new tab">Search GeoNames</a>
-                    <small class="form-text text-muted">GeoNames URI: "https://www.geonames.org/#######/CITY.html"</small>
+                    <small class="form-text text-muted">GeoNames URI:
+                        "https://www.geonames.org/#######/CITY.html"</small>
                 </div>
             </div>
 
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="date">Exact date</label>
-                    <input type="date" class="form-control" deer-key="date" name="date" min="1700-01-01" max="1950-12-31" required>
+                    <input type="date" class="form-control" deer-key="date" name="date" min="1700-01-01"
+                        max="2050-12-31" required>
                 </div>
             </div>
 
             <button type="submit" class="btn btn-primary">Create Birth 🎂</button>
         </form>
 
-        <form deer-type="Person" hash-id id="person" style="opacity: .01;">
+        <form deer-type="Person" hash-id id="person">
             <input deer-key="creator" value="mm-prototype" type="hidden">
-            <label for="presentAt">Present At</label>
-            <input type="text" class="form-control" deer-key="presentAt" name="presentAt" deer-listening="DOB">
-            <label for="birthDate">Birthdate</label>
-            <input type="date" class="form-control" deer-key="birthDate" name="birthDate">
-            <label for="birthPlace">Birth Place</label>
-            <input type="url" class="form-control" deer-key="birthPlace" name="birthPlace">
-            <button type="submit" id="personSubmit" class="btn btn-primary">Update Birth</button>
+            <div class="row">
+                <div class="form-group col">
+                    <label for="presentAt">Present At</label>
+                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt" deer-listening="DOB">
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="birthDate">Birthdate</label>
+                    <input type="date" class="form-control" deer-key="birthDate" name="birthDate">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="birthPlace">Birth Place</label>
+                    <input type="url" class="form-control" deer-key="birthPlace" name="birthPlace">
+                </div>
+            </div>
+            <button type="submit" id="personSubmit" class="btn btn-primary">Update Person</button>
         </form>
     </div>
     <script>
         // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
-        geoNameInput.addEventListener('input',ev=>{
+        geoNameInput.addEventListener('input', ev => {
             const queryLocation = ev.target.value?.split(',')
             const city = queryLocation[0].trim()
-            if(city.includes("geonames.org")){
+            if (city.includes("geonames.org")) {
                 geoNameLink.classList.remove('btn', 'btn-secondary')
                 geoNameLink.classList.add('hidden')
                 return
             }
             const country = queryLocation?.[1] ? `&country=${queryLocation?.[1]?.trim()}` : ``
             const query = `https://www.geonames.org/search.html?q=${city}${country}`
-            geoNameLink.setAttribute("href",query)
+            geoNameLink.setAttribute("href", query)
             geoNameLink.textContent = `Search for ${city}`
             geoNameLink.classList.add('btn', 'btn-secondary')
             geoNameLink.classList.remove('hidden')
         })
-        ;(()=>{
-            let hash = location.hash?.substring(1)
-            if(!hash){ return }
-            const rerumPrefix = "https://devstore.rerum.io/v1/id/"
-            if(hash.length===24){ hash = `${rerumPrefix}${hash}`}
-            fetch(hash).then(res=>res.json()).then(person=>{
-                if(person['@type']!=="Person") { alert("This Event expects a Person but got a "+person['@type']) }
-                const nameInput = document.querySelector('[name="name"]')
-                if (!nameInput || nameInput?.value?.length > 2) { return }
-                nameInput.setAttribute('value',`Birth of ${person.name || "ERR!"}`)
-            })
-            fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
-                method: "POST",
-                mode:"cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    target: hash,
-                    'body.presentAt': {$exists:true}
+            ; (() => {
+                let hash = location.hash?.substring(1)
+                if (!hash) { return }
+                const rerumPrefix = "https://devstore.rerum.io/v1/id/"
+                if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
+                fetch(hash).then(res => res.json()).then(person => {
+                    if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
+                    const nameInput = document.querySelector('[name="name"]')
+                    if (!nameInput || nameInput?.value?.length > 2) { return }
+                    nameInput.setAttribute('value', `Birth of ${person.name || "ERR!"}`)
                 })
-            }).then(response => response.json())
-            .then(anno=>{
-                if(anno.length > 0) { 
-                    alert("Hold on, there's already one created")
-                    DOB.setAttribute("deer-id",anno.pop()?.body.presentAt.value)
-                }
-            })
-        })()
-        person.addEventListener('deer-created',ev=>{
+                fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        target: hash,
+                        'body.presentAt': { $exists: true }
+                    })
+                }).then(response => response.json())
+                    .then(anno => {
+                        if (anno.length > 0) {
+                            alert("Existing event found.")
+                            DOB.setAttribute("deer-id", anno.pop()?.body.presentAt.value)
+                        }
+                    })
+            })()
+        document.addEventListener('deer-updated', ev => {
             // fire only when new event is created
             const newEvent = ev.detail
-            if(newEvent.target?.id !== "DOB") { return } // not the right form
-            document.querySelector('[name="presentAt"]').setAttribute('value',newEvent['@id'])
-            document.querySelector('[name="birthDate"]').setAttribute('value',document.querySelector('[name="date"]'))
-            document.querySelector('[name="birthPlace"]').setAttribute('value',geoNameInput.value)
+            if (newEvent.target?.id !== "DOB") { return } // not the right form
+            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
+            person.querySelector('[name="birthDate"]').setAttribute('value', document.querySelector('[name="date"]'))
+            person.querySelector('[name="birthPlace"]').setAttribute('value', geoNameInput.value)
             personSubmit.click()
         })
     </script>
