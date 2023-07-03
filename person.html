@@ -98,7 +98,7 @@
                     <small class="form-text text-muted">Hold <kbd>CTRL</kbd> to select several options</small>
                 </div>
             </div>
-            <div class="row">
+            <div class="row d-none">
                 <div class="form-group col-md-6">
                     <label for="vocalRange">Vocal Range</label>
                     <select name="vocalRange" multiple id="vocalRange" class="form-control" deer-key="vocalRange">
@@ -116,7 +116,7 @@
                     <p>// TODO: other ensemble members</p>
                 </div>
             </div>
-            
+
             <button type="submit" class="btn btn-primary">Create Person 👤</button>
         </form>
 
@@ -131,49 +131,51 @@
         <div class="row">
             <div class="form-group col">
                 <deer-a class="btn btn-secondary col" deer-link="Birth.html#" hash-id id="birthBtn">
-                    Birth 
+                    Birth
                     <deer-view deer-key="birthDate" deer-title=" date" deer-template="prop" hash-id>Birth</deer-view>
                 </deer-a>
             </div>
             <div class="form-group col">
                 <deer-a class="btn btn-secondary col" deer-link="Death.html#" hash-id id="deathBtn">
-                    Death 
+                    Death
                     <deer-view deer-key="deathDate" deer-title=" date" deer-template="prop" hash-id>Death</deer-view>
                 </deer-a>
             </div>
             <div class="form-group col">
                 <deer-a class="btn btn-secondary col" deer-link="Performance.html#" hash-id id="performanceBtn">
-                    Performances 
+                    Performances
                 </deer-a>
             </div>
             <div class="form-group col">
-                <button class="btn btn-secondary col" disabled="disabled">Appearance</button>
-            </div>
-            <div class="form-group col">
-                <button class="btn btn-secondary col" disabled="disabled">Visit</button>
-            </div>
-        </div>
-        <h4>Residencies</h4>
-        <div class="row">
-            <div class="form-group col">
-                <button class="btn btn-secondary col" disabled="disabled">Lived at</button>
-            </div>
-            <div class="form-group col">
-                <button class="btn btn-secondary col" disabled="disabled">Studied at</button>
-            </div>
-            <div class="form-group col">
-                <button class="btn btn-secondary col" disabled="disabled">Worked at</button>
+                <deer-a class="btn btn-secondary col" deer-link="Appearance.html#" hash-id id="appearanceBtn">
+                    Appearances
+                </deer-a>
             </div>
         </div>
-        <div class="row">
-            <div class="form-group col-md-4">
-                <h4>Students</h4>
-                <button class="btn btn-secondary col" disabled="disabled">Add a student</button>
+        <div class="d-none">
+            <h4>Residencies</h4>
+            <div class="row">
+                <div class="form-group col">
+                    <button class="btn btn-secondary col" disabled="disabled">Lived at</button>
+                </div>
+                <div class="form-group col">
+                    <button class="btn btn-secondary col" disabled="disabled">Studied at</button>
+                </div>
+                <div class="form-group col">
+                    <button class="btn btn-secondary col" disabled="disabled">Worked at</button>
+                </div>
             </div>
-            <div class="form-group col-md-4">
-                <h4>Teachers</h4>
-                <button class="btn btn-secondary col" disabled="disabled">Add a teacher/pedagogue</button>
+            <div class="row">
+                <div class="form-group col-md-4">
+                    <h4>Students</h4>
+                    <button class="btn btn-secondary col" disabled="disabled">Add a student</button>
+                </div>
+                <div class="form-group col-md-4">
+                    <h4>Teachers</h4>
+                    <button class="btn btn-secondary col" disabled="disabled">Add a teacher/pedagogue</button>
+                </div>
             </div>
+
         </div>
     </div>
     <script>
@@ -181,24 +183,24 @@
         authorityFile.addEventListener('click', async ev => {
             // https://id.loc.gov/authorities/names/n79011997.json
             const locId = authorityFile.value?.split('/').pop()
-            if(locId.length !== 9) { return }
+            if (locId.length !== 9) { return }
             const jsonURI = `https://id.loc.gov/authorities/names/${locId}.json`
-            const nameFile = await fetch(jsonURI).then(res=>res.json()).catch(err=>{})
+            const nameFile = await fetch(jsonURI).then(res => res.json()).catch(err => { })
             const ObjectMap = new Map()
             nameFile.forEach(element => {
                 const type = Array.isArray(element['@type']) ? element['@type'].pop() : element['@type']
                 const key = type.split('/').pop()
-                const keyForVal = Object.keys(element).find(k=>k.startsWith('http'))
+                const keyForVal = Object.keys(element).find(k => k.startsWith('http'))
                 const currentVal = ObjectMap.get(key)
                 const newVal = Array.isArray(currentVal) ? currentVal.push(element[keyForVal].pop?.()?.['@value']) : [element[keyForVal].pop?.()?.['@value']]
-                ObjectMap.set(key,newVal)
+                ObjectMap.set(key, newVal)
             })
             authorityDetails.innerHTML = `
             <dl>
-                ${[...ObjectMap.keys()].reduce((a,b)=>{
-                    return a += `<dt>${b}</dt>
+                ${[...ObjectMap.keys()].reduce((a, b) => {
+                return a += `<dt>${b}</dt>
                     <dd>${ObjectMap.get(b)}</dd>`
-                },``)}
+            }, ``)}
             </dl>
             `
         })
