@@ -22,7 +22,7 @@ DEER.TEMPLATES.prop = (obj, options = {}) => {
         let key = options.key ?? "[ missing key ]"
         let prop = obj[key]
         if(!prop) throw new Error()
-        return `<span>${key}: ${UTILS.getValue(prop) ?? `Property <code>${key}</code> is not defined on <a href="${obj.id}" target="_blank">this document</a>`}</span>`
+        return `<span>${options.label ?? key}: ${UTILS.getValue(prop) ?? `Property <code>${key}</code> is not defined on <a href="${obj.id}" target="_blank">this document</a>`}</span>`
     } catch (err) {
         return null
     }

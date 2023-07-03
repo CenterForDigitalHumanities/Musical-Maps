@@ -7,9 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/main.css">
     <script src="js/main.js" type="module"></script>
-    <script type="module" src="js/deer/js/deer.js"></script>
+    <script src="js/deer/js/deer.js" type="module"></script>
     <script src="js/layout.js"></script>
-    <title>Birth Event - Musical Maps of the World</title>
+    <title>Appearance - Musical Maps of the World</title>
 </head>
 
 <body is="mm-content">
@@ -18,7 +18,7 @@
         <deer-a class="btn btn-secondary" deer-link="person.html#" hash-id>Profile </deer-a>
 
         <h3>
-            Describe the Birth
+            Describe the Appearance
         </h3>
         <p>
             Use this form to add a new event to the musical maps.
@@ -30,7 +30,12 @@
             NB: As a sandbox prototype, all annotations will be created with
             the same authentication and is subject to revision.
         </p>
-        <form deer-type="Birth" deer-context="http://schema.org" id="DOB">
+        <h4>Appearances</h4>
+        <small class="text-muted">Click an existing appearance below to see the details or edit.</small>
+        <ol id="appearances">
+            <li>No records yet. Enter a new Event below.</li>
+        </ol>
+        <form deer-type="Event" deer-context="http://schema.org" id="DOD" deer-listening="appearances">
             <input deer-key="creator" value="mm-prototype" type="hidden">
 
             <div class="row">
@@ -55,9 +60,13 @@
                     <input type="date" class="form-control" deer-key="date" name="date" min="1700-01-01"
                         max="2050-12-31" required>
                 </div>
+                <div class="form-group col-md-6">
+                    <label for="description">Description</label>
+                    <textarea name="description" id="description" class="form-control" deer-key="description" placeholder="short notes or description of the event"></textarea>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Create Birth 🎂</button>
+            <button type="submit" class="btn btn-primary">Create Appearance 💬</button>
         </form>
 
         <form deer-type="Person" hash-id id="person">
@@ -66,16 +75,6 @@
                 <div class="form-group col">
                     <label for="presentAt">Present At</label>
                     <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group col-md-6">
-                    <label for="birthDate">Birthdate</label>
-                    <input type="date" class="form-control" deer-key="birthDate" name="birthDate">
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="birthPlace">Birth Place</label>
-                    <input type="url" class="form-control" deer-key="birthPlace" name="birthPlace">
                 </div>
             </div>
             <button type="submit" id="personSubmit" class="btn btn-primary">Update Person</button>
@@ -107,7 +106,7 @@
                     if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
                     const nameInput = document.querySelector('[name="name"]')
                     if (!nameInput || nameInput?.value?.length > 2) { return }
-                    nameInput.setAttribute('value', `Birth of ${person.name || "ERR!"}`)
+                    nameInput.setAttribute('value', `Performance of ${person.name || "ERR!"}`)
                 })
                 fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
                     method: "POST",
@@ -120,20 +119,19 @@
                 }).then(response => response.json())
                 .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "Birth")
+                        const eventMatch = events.filter(ev=>ev["@type"] === "Event")
                         if (eventMatch.length > 0) {
-                            alert("Existing event found.")
-                            DOB.setAttribute("deer-id", eventMatch.pop()?.['@id'])
+                            performances.innerHTML = eventMatch.reduce((a,b)=>a+=`<li deer-id="${b['@id']}">${b.name?.value ?? b.name}</li>`,``)
                         }
                     })
             })()
         document.addEventListener('deer-updated', ev => {
             // fire only when new event is created
             const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOB") { return } // not the right form
+            if (newEvent.target?.id !== "DOD") { return } // not the right form
             person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="birthDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="birthPlace"]').setAttribute('value', geoNameInput.value)
+            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
+            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
             personSubmit.click()
         })
     </script>

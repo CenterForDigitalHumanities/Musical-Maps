@@ -146,6 +146,13 @@ export default class DeerReport {
             this.inputs.forEach(inpt => {
                 if (inpt.type === "hidden") { inpt.$isDirty = true }
             })
+            let listensTo = elem.getAttribute(DEER.LISTENING)
+            if (listensTo) {
+                window[listensTo].addEventListener?.('click', e => {
+                    elem.setAttribute(DEER.ID, e.target.closest(`[${DEER.ID}]`).getAttribute(DEER.ID))
+                })
+            }
+
         }
     }
 
