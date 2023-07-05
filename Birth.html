@@ -120,7 +120,10 @@
                 }).then(response => response.json())
                 .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "Birth")
+                        const eventMatch = events.filter(ev=> {
+                            const t = ev["@type"] ?? ev.type ?? ""
+                            return t === "Birth"
+                        })
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
                             DOB.setAttribute("deer-id", eventMatch.pop()?.['@id'])

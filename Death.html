@@ -60,12 +60,12 @@
             <button type="submit" class="btn btn-primary">Create Death</button>
         </form>
 
-        <form deer-type="Person" hash-id id="person">
+        <form class="is-hidden" deer-type="Person" hash-id id="person">
             <input deer-key="creator" value="mm-prototype" type="hidden">
             <div class="row">
                 <div class="form-group col">
                     <label for="presentAt">Present At</label>
-                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
+                    <input id="deathURI" type="text" class="form-control" deer-key="presentAt" name="presentAt">
                 </div>
             </div>
             <div class="row">
@@ -98,35 +98,52 @@
             geoNameLink.classList.add('btn', 'btn-secondary')
             geoNameLink.classList.remove('hidden')
         })
-            ; (() => {
-                let hash = location.hash?.substring(1)
-                if (!hash) { return }
-                const rerumPrefix = "https://devstore.rerum.io/v1/id/"
-                if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
-                fetch(hash).then(res => res.json()).then(person => {
-                    if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
-                    const nameInput = document.querySelector('[name="name"]')
-                    if (!nameInput || nameInput?.value?.length > 2) { return }
-                    nameInput.setAttribute('value', `Death of ${person.name || "ERR!"}`)
+
+        ;(() => {
+            let hash = location.hash?.substring(1)
+            if (!hash) { return }
+            const rerumPrefix = "https://devstore.rerum.io/v1/id/"
+            if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
+            fetch(hash).then(res => res.json()).then(person => {
+                if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
+                const nameInput = document.querySelector('[name="name"]')
+                if (!nameInput || nameInput?.value?.length > 2) { return }
+                nameInput.setAttribute('value', `Death of ${person.name || "ERR!"}`)
+            })
+            fetch("https://tinydev.rerum.io/app/query/?limit=50&skip=0", {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    target: hash,
+                    'body.presentAt': { $exists: true }
                 })
-                fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
-                    method: "POST",
-                    mode: "cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        target: hash,
-                        'body.presentAt': { $exists: true }
+            }).then(response => response.json())
+            .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
+                .then(events => {
+                    const eventMatch = events.filter(ev=> {
+                        const t = ev["@type"] ?? ev.type ?? ""
+                        return t === "Death"
                     })
-                }).then(response => response.json())
-                .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
-                    .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "Death")
-                        if (eventMatch.length > 0) {
-                            alert("Existing event found.")
-                            DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
-                        }
-                    })
-            })()
+                    if (eventMatch.length > 0) {
+                        alert("Existing event found.")
+                        deathURI.value = eventMatch.pop()?.['@id']
+                        deathURI.$isDirty = false
+                        DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
+                    }
+                })
+        })()
+
+        document.addEventListener('deer-created', ev => {
+            // fire only when new event is created
+            const newEvent = ev.detail
+            if (newEvent.target?.id !== "DOD") { return } // not the right form
+            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
+            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
+            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
+            personSubmit.click()
+        })
+
         document.addEventListener('deer-updated', ev => {
             // fire only when new event is created
             const newEvent = ev.detail

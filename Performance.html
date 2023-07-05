@@ -108,7 +108,7 @@
                     if (!nameInput || nameInput?.value?.length > 2) { return }
                     nameInput.setAttribute('value', `Performance of ${person.name || "ERR!"}`)
                 })
-                fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
+                fetch("https://tinydev.rerum.io/app/query/?limit=50&skip=0", {
                     method: "POST",
                     mode: "cors",
                     headers: { "Content-Type": "application/json" },
@@ -119,7 +119,10 @@
                 }).then(response => response.json())
                 .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "MusicEvent")
+                        const eventMatch = events.filter(ev=> {
+                            const t = ev["@type"] ?? ev.type ?? ""
+                            return t === "MusicEvent"
+                        })
                         if (eventMatch.length > 0) {
                             performances.innerHTML = eventMatch.reduce((a,b)=>a+=`<li deer-id="${b['@id']}">${b.name?.value ?? b.name}</li>`,``)
                         }
