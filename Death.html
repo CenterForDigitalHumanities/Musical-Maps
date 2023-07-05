@@ -9,6 +9,7 @@
     <script src="js/main.js" type="module"></script>
     <script src="js/deer/js/deer.js" type="module"></script>
     <script src="js/layout.js"></script>
+    <script src="js/shared.js"></script>
     <title>Death Event - Musical Maps of the World</title>
 </head>
 
@@ -30,7 +31,7 @@
             NB: As a sandbox prototype, all annotations will be created with
             the same authentication and is subject to revision.
         </p>
-        <form deer-type="Death" deer-context="http://schema.org" id="DOD">
+        <form deer-type="Death" deer-creator="mm-prototype" deer-context="http://schema.org" id="DOD">
             <input deer-key="creator" value="mm-prototype" type="hidden">
 
             <div class="row">
@@ -57,20 +58,20 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Create Death</button>
+            <button id="deathBtn" type="submit" class="btn btn-primary">Create Death Event</button>
         </form>
 
-        <form class="is-hidden" deer-type="Person" hash-id id="person">
+        <form class="is-hidden" deer-type="Person" deer-creator="mm-prototype" hash-id id="person">
             <input deer-key="creator" value="mm-prototype" type="hidden">
             <div class="row">
                 <div class="form-group col">
                     <label for="presentAt">Present At</label>
-                    <input id="deathURI" type="text" class="form-control" deer-key="presentAt" name="presentAt">
+                    <input id="deathURI" type="hidden" class="form-control" deer-key="presentAt" name="presentAt" deer-input-type="Set">
                 </div>
             </div>
             <div class="row">
                 <div class="form-group col-md-6">
-                    <label for="deathDate">Deathdate</label>
+                    <label for="deathDate">Death Date</label>
                     <input type="date" class="form-control" deer-key="deathDate" name="deathDate">
                 </div>
                 <div class="form-group col-md-6">
@@ -82,13 +83,20 @@
         </form>
     </div>
     <script>
+
+        //For when we need to fire input events programmatically.
+        let inputEvent = new Event('input', {
+            bubbles: false,
+            cancelable: true
+        })
+
         // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
         geoNameInput.addEventListener('input', ev => {
             const queryLocation = ev.target.value?.split(',')
             const city = queryLocation[0].trim()
             if (city.includes("geonames.org")) {
                 geoNameLink.classList.remove('btn', 'btn-secondary')
-                geoNameLink.classList.add('hidden')
+                geoNameLink.classList.add('is-hidden')
                 return
             }
             const country = queryLocation?.[1] ? `&country=${queryLocation?.[1]?.trim()}` : ``
@@ -96,7 +104,7 @@
             geoNameLink.setAttribute("href", query)
             geoNameLink.textContent = `Search for ${city}`
             geoNameLink.classList.add('btn', 'btn-secondary')
-            geoNameLink.classList.remove('hidden')
+            geoNameLink.classList.remove('is-hidden')
         })
 
         ;(() => {
@@ -104,55 +112,83 @@
             if (!hash) { return }
             const rerumPrefix = "https://devstore.rerum.io/v1/id/"
             if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
-            fetch(hash).then(res => res.json()).then(person => {
-                if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
+            fetch(hash).then(res => res.json()).then(p => {
+                if (p['@type'] !== "Person") { alert("This Event expects a Person but got a " + p['@type']) }
                 const nameInput = document.querySelector('[name="name"]')
                 if (!nameInput || nameInput?.value?.length > 2) { return }
-                nameInput.setAttribute('value', `Death of ${person.name || "ERR!"}`)
+                nameInput.setAttribute('value', `Death of ${p.name || "ERR!"}`)
             })
-            fetch("https://tinydev.rerum.io/app/query/?limit=50&skip=0", {
+            fetch("https://tinydev.rerum.io/app/query?limit=50&skip=0", {
                 method: "POST",
                 mode: "cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     target: hash,
-                    'body.presentAt': { $exists: true }
+                    'body.presentAt': { $exists: true },
+                    'creator' : 'mm-prototype',
+                    "__rerum.history.next":{ $exists: true, $eq: [] }
                 })
             }).then(response => response.json())
-            .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
+            .then(eventSet => Promise.all(eventSet[0].body.presentAt.items.map(uri=>fetch(uri).then(response => response.json()))))
                 .then(events => {
                     const eventMatch = events.filter(ev=> {
                         const t = ev["@type"] ?? ev.type ?? ""
                         return t === "Death"
                     })
                     if (eventMatch.length > 0) {
-                        alert("Existing event found.")
-                        deathURI.value = eventMatch.pop()?.['@id']
-                        deathURI.$isDirty = false
+                        alert("Existing Death event found.")
+                        // What should we do if more than one Death event is recorded?
+                        deathBtn.innerText = "Update Death Event"
+                        //deathURI.value = eventMatch.pop()?.['@id']
+                        //deathURI.setAttribute("deer-id", eventMatch.pop()?.['@id'])
                         DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
                     }
                 })
         })()
 
-        document.addEventListener('deer-created', ev => {
-            // fire only when new event is created
-            const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOD") { return } // not the right form
-            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
-            personSubmit.click()
-        })
-
         document.addEventListener('deer-updated', ev => {
             // fire only when new event is created
             const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOD") { return } // not the right form
-            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
+            const t = newEvent["@type"] ?? newEvent.type ?? ""
+            if (t !== "Death") { return } // not the right form
+
+            let events_tracked = person.querySelector('[name="presentAt"]').value
+            let event_delim = person.querySelector('[name="presentAt"]').hasAttribute("deer-array-delimeter") ? person.querySelector('[name="presentAt"]').getAttribute("deer-array-delimeter") : ","
+            if(events_tracked){
+                events_tracked += `${events_delim}${newEvent['@id']}`
+            }
+            else{
+                events_tracked = newEvent['@id']
+            }
+            // person.querySelector('[name="presentAt"]').value = events_tracked
+            // person.querySelector('[name="presentAt"]').$isDirty = true
+            // person.querySelector('[name="deathDate"]').value = document.querySelector('[name="date"]')
+            // person.querySelector('[name="deathDate"]').$isDirty = true
+            // person.querySelector('[name="deathPlace"]').value = geoNameInput.value
+            // person.querySelector('[name="deathPlace"]').$isDirty = true
+            person.querySelector('[name="presentAt"]').value = events_tracked
+            person.querySelector('[name="presentAt"]').dispatchEvent(inputEvent)
+            person.querySelector('[name="deathDate"]').value = document.querySelector('[name="date"]').value
+            person.querySelector('[name="deathDate"]').dispatchEvent(inputEvent)
+            person.querySelector('[name="deathPlace"]').value = geoNameInput.value
+            person.querySelector('[name="deathPlace"]').dispatchEvent(inputEvent)
+            person.$isDirty = true
             personSubmit.click()
         })
+
+        /**
+         * Detects that all annotation data is gathered and all HTML of the form is in the DOM and can be interacted with.
+         * This is important for pre-filling or pre-selecting values of multi select areas, dropdown, checkboxes, etc. 
+         * This event will come after all deer-view-rendered events have finished.
+         * @see deer-record.js DeerReport.constructor()  
+         */
+        addEventListener('deer-form-rendered', event => {
+            const expandedEntity = event.detail
+            const t = expandedEntity["@type"] ?? expandedEntity.type ?? ""
+            if (t !== "Person") { return } // not the right form
+            setTrackedHiddenValues(expandedEntity, ["presentAt"], event.target)
+        })
+                    
     </script>
 </body>
 

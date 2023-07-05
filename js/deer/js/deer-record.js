@@ -167,7 +167,7 @@ export default class DeerReport {
             if (redundant > 0) {
                 UTILS.warning(redundant + " duplicate input " + DEER.KEY + " attribute value" + (redundant === 1) ? "" : "s" + " detected in form. Some inputs will be ignored upon form submission and only the first instance will be respected.", this.inputs)
             }
-            this.inputs.forEach(elem => UTILS.assertElementValue(elem, Object.fromEntries(valueMap)))
+            this.inputs.forEach(elem => UTILS.assertElementValue(elem, Object.fromEntries(valueMap), true))
         } catch (err) { console.log(err) }
         setTimeout(function () {
             /*

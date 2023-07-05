@@ -109,13 +109,14 @@
                     if (!nameInput || nameInput?.value?.length > 2) { return }
                     nameInput.setAttribute('value', `Birth of ${person.name || "ERR!"}`)
                 })
-                fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
+                fetch("https://tinydev.rerum.io/query?limit=50&skip=0", {
                     method: "POST",
                     mode: "cors",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         target: hash,
-                        'body.presentAt': { $exists: true }
+                        'body.presentAt': { $exists: true },
+                        'creator' : 'mm-prototype'
                     })
                 }).then(response => response.json())
                 .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))

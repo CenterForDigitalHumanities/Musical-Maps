@@ -329,6 +329,7 @@ const utils = {
                     assertedValue = ""
                 }
             } else {
+                mapsToAnno = mapsToAnno || DEER.CONTAINERS.includes(assertedValue["@type"])
                 switch (typeof assertedValue) {
                     //getValue either returned an object because it could not find obj.value or because obj.value was an object.  
                     case "object":
@@ -349,7 +350,7 @@ const utils = {
                                         assertedValue = ""
                                     }
                                 } else {
-                                    arrayOfValues = this.getArrayFromObj(assertedValue, el)
+                                    arrayOfValues = this.getArrayFromObj(assertedValue, elem)
                                     assertedValue = this.stringifyArray(arrayOfValues, delim)
                                 }
                             } else {
