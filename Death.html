@@ -83,7 +83,7 @@
         </form>
     </div>
     <script>
-
+        let existingDeathEvent = ""
         //For when we need to fire input events programmatically.
         let inputEvent = new Event('input', {
             bubbles: false,
@@ -112,12 +112,20 @@
             if (!hash) { return }
             const rerumPrefix = "https://devstore.rerum.io/v1/id/"
             if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
-            fetch(hash).then(res => res.json()).then(p => {
+
+            fetch(hash)
+            .then(res => res.json())
+            .then(p => {
                 if (p['@type'] !== "Person") { alert("This Event expects a Person but got a " + p['@type']) }
                 const nameInput = document.querySelector('[name="name"]')
                 if (!nameInput || nameInput?.value?.length > 2) { return }
                 nameInput.setAttribute('value', `Death of ${p.name || "ERR!"}`)
             })
+            .catch(err => {
+                console.error(err)
+                alert(`There was an error getting the entity ' ${hash} '`)
+            })
+
             fetch("https://tinydev.rerum.io/app/query?limit=50&skip=0", {
                 method: "POST",
                 mode: "cors",
@@ -128,22 +136,33 @@
                     'creator' : 'mm-prototype',
                     "__rerum.history.next":{ $exists: true, $eq: [] }
                 })
-            }).then(response => response.json())
-            .then(eventSet => Promise.all(eventSet[0].body.presentAt.items.map(uri=>fetch(uri).then(response => response.json()))))
-                .then(events => {
-                    const eventMatch = events.filter(ev=> {
-                        const t = ev["@type"] ?? ev.type ?? ""
-                        return t === "Death"
-                    })
-                    if (eventMatch.length > 0) {
-                        alert("Existing Death event found.")
-                        // What should we do if more than one Death event is recorded?
-                        deathBtn.innerText = "Update Death Event"
-                        //deathURI.value = eventMatch.pop()?.['@id']
-                        //deathURI.setAttribute("deer-id", eventMatch.pop()?.['@id'])
-                        DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
-                    }
+            })
+            .then(response => response.json())
+            .then(eventSet => {
+                if(eventSet.length){
+                    return Promise.all(eventSet[0].body.presentAt.items.map(uri=>fetch(uri).then(response => response.json())))    
+                }
+                return [] 
+            })
+            .then(events => {
+                const eventMatch = events.filter(ev=> {
+                    const t = ev["@type"] ?? ev.type ?? ""
+                    return t === "Death"
                 })
+                if (eventMatch.length > 0) {
+                    alert("Existing Death event found.")
+                    // What should we do if more than one Death event is recorded?
+                    deathBtn.innerText = "Update Death Event"
+                    const deathEventURI = eventMatch.pop()?.['@id']
+                    DOD.setAttribute("deer-id", deathEventURI)
+                    existingDeathEvent = deathEventURI
+                }
+            })
+            .catch(err => {
+                console.error(err)
+                alert("There was an error getting events for this entity")
+                return []
+            })
         })()
 
         document.addEventListener('deer-updated', ev => {
@@ -155,17 +174,17 @@
             let events_tracked = person.querySelector('[name="presentAt"]').value
             let event_delim = person.querySelector('[name="presentAt"]').hasAttribute("deer-array-delimeter") ? person.querySelector('[name="presentAt"]').getAttribute("deer-array-delimeter") : ","
             if(events_tracked){
-                events_tracked += `${events_delim}${newEvent['@id']}`
+                if(events_tracked.includes(existingDeathEvent)){
+                    events_tracked = events_tracked.replace(existingDeathEvent, newEvent['@id'])
+                }
+                else{
+                    events_tracked += `${event_delim}${newEvent['@id']}`    
+                }
             }
             else{
                 events_tracked = newEvent['@id']
+                existingDeathEvent = newEvent['@id']
             }
-            // person.querySelector('[name="presentAt"]').value = events_tracked
-            // person.querySelector('[name="presentAt"]').$isDirty = true
-            // person.querySelector('[name="deathDate"]').value = document.querySelector('[name="date"]')
-            // person.querySelector('[name="deathDate"]').$isDirty = true
-            // person.querySelector('[name="deathPlace"]').value = geoNameInput.value
-            // person.querySelector('[name="deathPlace"]').$isDirty = true
             person.querySelector('[name="presentAt"]').value = events_tracked
             person.querySelector('[name="presentAt"]').dispatchEvent(inputEvent)
             person.querySelector('[name="deathDate"]').value = document.querySelector('[name="date"]').value
