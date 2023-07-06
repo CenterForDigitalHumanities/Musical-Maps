@@ -2,16 +2,18 @@
  * @module DEER Data Encoding and Exhibition for RERUM
  * @author Patrick Cuba <cubap@slu.edu>
  * @author Bryan Haberberger <bryan.j.haberberger@slu.edu>
- * @version 0.7
+ * @version 0.11
  * This code should serve as a basis for developers wishing to
  * use TinyThings as a RERUM proxy for an application for data entry,
  * especially within the Eventities model.
  * @see tiny.rerum.io
  */
 
-import { DEER, UTILS } from './deer-utils.js'
+import { default as UTILS } from './deer-utils.js'
+import { default as config } from './deer-config.js'
 
 const changeLoader = new MutationObserver(renderChange)
+var DEER = config
 
 /**
  * Observer callback for rendering newly loaded objects. Checks the
@@ -24,105 +26,57 @@ async function renderChange(mutationsList) {
             case DEER.ID:
                 let id = mutation.target.getAttribute(DEER.ID)
                 if (id === null) return
-                const obj = await getObject(id)
-                mutation.target.DeerReport.fillValues(new Map(Object.entries(obj)))
+                let obj = {}
+                try {
+                    obj = JSON.parse(localStorage.getItem(id))
+                } catch (err) { }
+                if (!obj ?? !obj["@id"]) {
+                    id = id.replace(/^https?:/, 'https:') // avoid mixed content
+                    obj = await fetch(id).then(response => response.json()).catch(error => error)
+                    if (obj) {
+                        localStorage.setItem(obj["@id"] ?? obj.id, JSON.stringify(obj))
+                    } else {
+                        return false
+                    }
+                }
+                new DeerReport(mutation.target, DEER)
+                // TODO: This is too heavy. Create a "populateFormFields" method and call it instead.
                 break
             case DEER.LISTENING:
                 let listensTo = mutation.target.getAttribute(DEER.LISTENING)
                 if (listensTo) {
-                    mutation.target.addEventListener('deer-clicked', e => {
+                    mutation.target.addEventListener(DEER.EVENTS.CLICKED, e => {
                         let loadId = e.detail["@id"]
-                        if (loadId === listensTo) { mutation.target.setAttribute(DEER.ID, loadId) }
+                        if (loadId === listensTo) { mutation.target.setAttribute("deer-id", loadId) }
                     })
                 }
         }
     }
 }
 
-async function getObject(findId) {
-
-    let obj = fetch(findId).then(res => res.json())
-    let annos = findByTargetId(findId,[],DEER.URLS.QUERY)
-    await Promise.all([obj, annos]).then(res => {
-        annos = res[1]
-        obj = res[0]
-    })
-    annos.forEach(anno=>obj = applyAssertions(obj,anno.body))
-
-    return obj
-
-    function applyAssertions(assertOn, annotationBody) {
-        if (Array.isArray(annotationBody)) { return annotationBody.forEach(a=>applyAssertions(assertOn,a)) }
-    
-        const assertions = {}
-        Object.entries(annotationBody).forEach(([k, v]) => {
-            const assertedValue = UTILS.getValue(v)
-            if ( [undefined,null,"",[],assertOn[k]].flat().includes(assertedValue) ) { return }
-            if (assertOn.hasOwnProperty(k) && ![undefined,null,"",[]].includes(assertOn[k]) ) {
-                Array.isArray(assertions[k]) ? assertions[k].push(assertedValue).flat() : assertions[k] = [assertOn[k],assertedValue].flat()
-            } else {
-                assertions[k] = assertedValue
-            }
-        })
-    
-        // Simplify any arrays of length 1, which may not be a good idea.
-        Object.entries(assertions).forEach(([k, v]) => { if (Array.isArray(v) && v.length === 1) { v = v[0] } })
-    
-        return Object.assign(assertOn, assertions)
-    }
-
-    async function findByTargetId(id, targetStyle = [], queryUrl = DEER.URLS.QUERY) {
-        if (!Array.isArray(targetStyle)) {
-            targetStyle = [targetStyle]
-        }
-        targetStyle = targetStyle.concat(["target", "target.@id", "target.id"]) //target.source?
-        let historyWildcard = { "$exists": true, "$size": 0 }
-        let obj = { "$or": [], "__rerum.history.next": historyWildcard }
-        for (let target of targetStyle) {
-            if (typeof target === "string") {
-                let o = {}
-                o[target] = id
-                obj["$or"].push(o)
-            }
-        }
-        return fetch(queryUrl+"?limit=100&skip=0", {
-            method: "POST",
-            body: JSON.stringify(obj),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
-            .then(response => response.json())
-            .catch((err) => console.error(err))
-    }
-}
-
 export default class DeerReport {
     constructor(elem, deer = {}) {
-
-
         for (let key in DEER) {
             if (typeof DEER[key] === "string") {
-                DEER[key] = deer[key] ?? DEER[key]
+                DEER[key] = deer[key] ?? config[key]
             } else {
-                DEER[key] = Object.assign(DEER[key], deer[key])
+                DEER[key] = Object.assign(config[key], deer[key])
             }
         }
         this.$isDirty = false
         this.id = elem.getAttribute(DEER.ID)
         this.elem = elem
-        elem.DeerReport = this
         this.evidence = elem.getAttribute(DEER.EVIDENCE) // inherited to inputs
-        this.context = elem.getAttribute(DEER.CONTEXT) // inherited to inputs
+        this.context = elem.getAttribute(DEER.CONTEXT) // unused
         this.attribution = elem.getAttribute(DEER.ATTRIBUTION) // inherited to inputs
         this.motivation = elem.getAttribute(DEER.MOTIVATION) // inherited to inputs
         this.type = elem.getAttribute(DEER.TYPE)
         this.inputs = Array.from(elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(",")))
         this.inputs.forEach(inpt => {
-            inpt.addEventListener('input', (e) => {
-                inpt.$isDirty = true //Make the input dirty
-                this.$isDirty = true //Make the DeerReport dirty
-            })
+           inpt.addEventListener('input', (e) => {
+               inpt.$isDirty = true //Make the input dirty
+               this.$isDirty = true //Make the DeerReport dirty
+           }) 
         })
         changeLoader.observe(elem, {
             attributes: true
@@ -131,60 +85,143 @@ export default class DeerReport {
 
         if (this.id) {
             //Do we want to expand for all types?
-            UTILS.worker.postMessage({
-                action: "view",
-                id: this.id
-            })
-            const submitBtn = this.elem.querySelector('button[type="submit"]')
-            if(submitBtn){
-                submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
-            }
-            UTILS.worker.addEventListener("message", event => {
-                this.fillValues(new Map(Object.entries(event.data.payload)))
-            })
-        } else {
+            UTILS.expand({ "@id": this.id })
+                .then((function (obj) {
+                    try {
+                        let inputElems = this.inputs
+                        let flatKeys = inputElems.map(input => input.getAttribute(DEER.KEY))
+                        for (let i = 0; i < inputElems.length; i++) {
+                            let el = inputElems[i]
+                            let deerKeyValue = el.getAttribute(DEER.KEY)
+                            let mapsToAnno = false                       
+                            let assertedValue = ""
+                            if (flatKeys.indexOf(deerKeyValue) !== i) {
+                                UTILS.warning("Duplicate input " + DEER.KEY + " attribute value '" + deerKeyValue + "' detected in form.  This input will be ignored upon form submission and only the first instance will be respected.  See duplicate below.", el)
+                                //Don't skip the input though, let it recieve all warnings and errors per usual in case this happens to be the one the dev means to keep.
+                            }
+                            if (obj.hasOwnProperty(deerKeyValue)) {
+                                if(obj[deerKeyValue].evidence)el.setAttribute(DEER.EVIDENCE, obj[deerKeyValue].evidence)
+                                if(obj[deerKeyValue].motivation)el.setAttribute(DEER.MOTIVATION, obj[deerKeyValue].motivation)
+                                if(obj[deerKeyValue].creator)el.setAttribute(DEER.ATTRIBUTION, obj[deerKeyValue].creator)
+                                //TODO handle @context?
+
+                                //Then there is a key on this object that maps to the input.  
+                                //It is either an annotation or was part of the object directly.  If it has a 'source' property, we assume it is an annotation.
+                                assertedValue = UTILS.getValue(obj[deerKeyValue])
+                                mapsToAnno = (typeof obj[deerKeyValue] === "object" && obj[deerKeyValue].hasOwnProperty("source"))
+                                if (mapsToAnno) {
+                                    el.setAttribute(DEER.SOURCE, UTILS.getValue(obj[deerKeyValue].source, "citationSource"))
+                                }
+                                let annoBodyObjectType = (typeof assertedValue === "object") ? assertedValue.type ?? assertedValue["@type"] ?? "" : ""
+                                let delim = el.getAttribute(DEER.ARRAYDELIMETER) ?? DEER.DELIMETERDEFAULT ?? ","
+                                let arrayOfValues = []
+                                if (Array.isArray(assertedValue)) {
+                                    /**
+                                     * This could mean multiple annotations of similar bodies exist so UTILS.expand() put them together.
+                                     * This could mean that the key on the orignal object also had annotations existing for it so UTILS.expand() put them together.
+                                     * This could mean that the key on the original object was an array already, and may not contain anything we can get a value from.
+                                     * We will preference the first entry of the array that is an annotation.  
+                                     * If no annotations are found, DEER will aribitrarily pick the last string or number encountered.   
+                                     * DEER does not technically support this situation, but can make a best guess and help it along...
+                                     */
+                                    UTILS.warning("There are multiple possible values for key '" + deerKeyValue + "'. See below. ", assertedValue)
+                                    let arbitraryAssertedValue = ""
+                                    for (let entry of assertedValue) {
+                                        if (["string", "number"].indexOf(typeof entry) > -1) {
+                                            //We found it and understand it, but we preference annotation objects so look at the rest of the entries.
+                                            //Consequently, if no annotations are found, the last string/number entry will be the one DEER uses.
+                                            mapsToAnno = false
+                                            el.setAttribute(DEER.SOURCE, UTILS.getValue(entry.source, "citationSource"))
+                                            assertedValue = arbitraryAssertedValue = UTILS.getValue(entry)
+                                        } else if (typeof entry === "object") {
+                                            if (entry.hasOwnProperty(deerKeyValue) && entry[deerKeyValue].hasOwnProperty("source")) {
+                                                //Then this is an object like {deerKeyValue:{value:"hopefully", source:"anno/123"}} and can be preferenced
+                                                mapsToAnno = true
+                                                el.setAttribute(DEER.SOURCE, UTILS.getValue(entry.source, "citationSource"))
+                                                assertedValue = arbitraryAssertedValue = UTILS.getValue(entry[deerKeyValue])
+                                                break
+                                            } else if (entry.hasOwnProperty("source")) {
+                                                //Then this is an object like {value:"hopefully", source:"anno/123"} and can be preferenced
+                                                mapsToAnno = true
+                                                el.setAttribute(DEER.SOURCE, UTILS.getValue(entry.source, "citationSource"))
+                                                assertedValue = arbitraryAssertedValue = UTILS.getValue(entry)
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if (arbitraryAssertedValue) { UTILS.warning("DEER arbitrarily chose the value '" + arbitraryAssertedValue + "'.") } else {
+                                        console.error("DEER did not understand any of these values.  Therefore, the value will be an empty string.")
+                                        assertedValue = ""
+                                    }
+                                } else if (typeof assertedValue === "object") {
+                                    //getValue either returned an object because it could not find obj.value or because obj.value was an object.  
+                                    if (mapsToAnno) {
+                                        //Then getValue found an annotation DEER understood and the body.value was an object.
+                                        if (el.getAttribute(DEER.INPUTTYPE)) {
+                                            //Only an element noted as a DEER.INPUTTYPE would have this kind of annotation behind it.  For others, it is an error.  
+                                            if (annoBodyObjectType === "" || el.getAttribute(DEER.INPUTTYPE) !== annoBodyObjectType) {
+                                                //The HTML input should note the same type of container as the annotation so helper functiions can determine if it is a supported in DEER.CONTAINERS
+                                                UTILS.warning("Container type mismatch!.  See attribute '" + DEER.INPUTTYPE + "' on element " + el.outerHTML + "." +
+                                                    " The element is now dirty and will overwrite the type noted in the annotation seen below upon form submission." +
+                                                    " If the type of the annotation body is not a supported type then DEER will not be able to get the array of values.", obj[deerKeyValue])
+                                            }
+                                            if (el.getAttribute(DEER.INPUTTYPE) === "object") {
+                                                try {
+                                                    assertedValue = JSON.stringify(assertedValue)
+                                                } catch (err) {
+                                                    assertedValue = ""
+                                                }
+                                            } else {
+                                                arrayOfValues = UTILS.getArrayFromObj(assertedValue, el)
+                                                assertedValue = UTILS.stringifyArray(arrayOfValues, delim)
+                                            }
+                                        } else {
+                                            //This should have been a string or number.  We do not support whatever was meant to be here.  
+                                            console.error("We do not support annotation body values that are objects, unless they are a supported container object and the element " + el.outerHTML + " notes '" + DEER.INPUTTYPE + "'.  Therefore, the value of annotation is being ignored.  See annotation below.")
+                                            console.log(obj[deerKeyValue])
+                                            assertedValue = ""
+                                        }
+                                    } else {
+                                        //Then getValue returned an object and could not confirm it was an annotation.  We cannot find a value. 
+                                        console.error("Could not find 'value' in the object body.  See below.")
+                                        console.log(obj[deerKeyValue])
+                                        assertedValue = ""
+                                    }
+                                } else if ((["string", "number"].indexOf(typeof assertedValue) > -1)) {
+                                    //getValue either found that obj[deerKeyValue] was a string or found that it was an object with a 'value' that was a string or number. 
+                                    //The asserted value is already set and we know whether or not it mapsToAnno, so do nothing.  Keep this here for future handling. 
+                                } else {
+                                    //An undefined situation perhaps?
+                                    console.error("We do not support values of this type '" + typeof assertedValue + "'.  Therefore, the value of annotation is being ignored.  See annotation below.")
+                                    console.log(obj[deerKeyValue])
+                                    assertedValue = ""
+                                }
+                            }
+                            UTILS.assertElementValue(el, assertedValue, mapsToAnno)
+                            
+                        }
+                    } catch (err) { console.log(err) }
+                    setTimeout(function () {
+                        /*
+                         *  The difference between a view and a form is that a view does not need to know the annotation data of its sibling views.  
+                         *  A form needs to know the annotation data of all its child views to populate values, but this hierarchy is not inherent.
+                         *  
+                         *  This event works because of deerInitializer.js.  It loads all views in a Promise that uses a timeout
+                         *  in its resolve state, giving all innerHTML = `something` calls time to make it to the DOM before this event broadcasts.  
+                         *  You will notice that the "deer-view-rendered" events all happen before this event is fired on respective HTML pages.
+                         *  This lets the script know forms are open for dynamic rendering interaction, like pre-filling or pre-selecting values.
+                         */
+                        UTILS.broadcast(undefined, DEER.EVENTS.FORM_RENDERED, elem, obj)
+                    }, 0)
+                    //Note this is deprecated for the "deer-form-rendered" event.
+                    UTILS.broadcast(undefined, DEER.EVENTS.LOADED, elem, obj)
+                }).bind(this))
+                .then(() => elem.click())
+        }
+        else{
             this.inputs.forEach(inpt => {
-                if (inpt.type === "hidden") { inpt.$isDirty = true }
+               if (inpt.type === "hidden") { inpt.$isDirty = true }
             })
-            let listensTo = elem.getAttribute(DEER.LISTENING)
-            if (listensTo) {
-                window[listensTo].addEventListener?.('click', e => {
-                    elem.setAttribute(DEER.ID, e.target.closest(`[${DEER.ID}]`).getAttribute(DEER.ID))
-                })
-            }
-
-        }
-    }
-
-    fillValues(valueMap) {
-
-        if(valueMap.get('@id')){
-            this.id = valueMap.get('@id') ?? valueMap.get('id')
-        }
-        try {
-            const flatKeys = [...new Set(this.inputs.map(input => input.getAttribute(DEER.KEY)))]
-            const redundant = this.inputs.length - flatKeys.length
-            if (redundant > 0) {
-                UTILS.warning(redundant + " duplicate input " + DEER.KEY + " attribute value" + (redundant === 1) ? "" : "s" + " detected in form. Some inputs will be ignored upon form submission and only the first instance will be respected.", this.inputs)
-            }
-            this.inputs.forEach(elem => UTILS.assertElementValue(elem, Object.fromEntries(valueMap), true))
-        } catch (err) { console.log(err) }
-        setTimeout(function () {
-            /*
-            *  The difference between a view and a form is that a view does not need to know the annotation data of its sibling views.  
-            *  A form needs to know the annotation data of all its child views to populate values, but this hierarchy is not inherent.
-            *  
-            *  This event works because of deerInitializer.js.  It loads all views in a Promise that uses a timeout
-            *  in its resolve state, giving all innerHTML = `something` calls time to make it to the DOM before this event broadcasts.  
-            *  You will notice that the "deer-view-rendered" events all happen before this event is fired on respective HTML pages.
-            *  This lets the script know forms are open for dynamic rendering interaction, like pre-filling or pre-selecting values.
-            */
-            UTILS.broadcast(undefined, DEER.EVENTS.FORM_RENDERED, this.elem, Object.fromEntries(valueMap))
-        }, 0)
-        this.elem.click()
-        const submitBtn = this.elem.querySelector('button[type="submit"]')
-        if(submitBtn){
-            submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
         }
     }
 
@@ -199,10 +236,17 @@ export default class DeerReport {
         if (!this.$isDirty) {
             UTILS.warning(event.target.id + " form submitted unchanged.")
         }
+        if (this.elem.getAttribute(DEER.ITEMTYPE) === "simple") {
+            return this.simpleUpsert(event).then(entity => {
+                //Notice that sipleUpsert may return {} in certain controlled situations, causing an undefined error here, on purpose.
+                this.elem.setAttribute(DEER.ID, entity["@id"])
+                new DeerReport(this.elem)
+            })
+        }
         let record = {
             "@type": this.type
         }
-        if (this.context) { record["@context"] = this.context }
+        if (this.context) { record["@context"] = UTILS.processContextSyntax(this.context) }
         for (let p of DEER.PRIMITIVES) {
             try {
                 record[p] = this.elem.querySelector("[" + DEER.KEY + "='" + p + "']").value
@@ -219,7 +263,8 @@ export default class DeerReport {
             formAction = fetch(DEER.URLS.CREATE, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json; charset=utf-8"
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization": `Bearer ${window.GOG_USER.authorization}`
                 },
                 body: JSON.stringify(record)
             })
@@ -246,20 +291,31 @@ export default class DeerReport {
             })
                 .map(input => {
                     let inputId = input.getAttribute(DEER.SOURCE)
-                    let creatorId = input.getAttribute(DEER.ATTRIBUTION) || this.attribution
-                    let motivation = input.getAttribute(DEER.MOTIVATION) || this.motivation
-                    let evidence = input.getAttribute(DEER.EVIDENCE) || this.evidence
+                    let creatorId = input.getAttribute(DEER.ATTRIBUTION) ?? this.attribution
+                    let motivation = input.getAttribute(DEER.MOTIVATION) ?? this.motivation
+                    let evidence = input.getAttribute(DEER.EVIDENCE) ?? this.evidence
                     let action = (inputId) ? "UPDATE" : "CREATE"
                     let annotation = {
                         type: "Annotation",
                         target: entity["@id"],
                         body: {}
                     }
-                    if (creatorId) { annotation.creator = creatorId }
-                    if (motivation) { annotation.motivation = motivation }
-                    if (evidence) { annotation.evidence = evidence }
+                    /**
+                     * Context granularity support, should we seek it.  Each annotation can have its own context.
+                     * Note that expand() should put all unique contexts onto the entity and not repeat them.
+                    */
+                    /*  
+                    let annoContext = input.getAttribute(DEER.CONTEXT)
+                    if(annoContext) {annotation["@context"] = UTILS.processContextSyntax(annoContext)}
+                    */
+                    if(this.context) {annotation["@context"] = UTILS.processContextSyntax(this.context)}
+                    // If DEER is promising Web Annotations are being generated, then we need this.
+                    //else { annotation["@context"] = "http://www.w3.org/ns/anno.jsonld" }
+                    if(creatorId) { annotation.creator = creatorId }
+                    if(motivation) { annotation.motivation = motivation }
+                    if(evidence) { annotation.evidence = evidence }
                     let delim = (input.hasAttribute(DEER.ARRAYDELIMETER)) ? input.getAttribute(DEER.ARRAYDELIMETER) : (DEER.DELIMETERDEFAULT) ? DEER.DELIMETERDEFAULT : ","
-                    let val = input.hasAttribute("multiple") ? [...input.selectedOptions]?.map?.(opt=>opt.value) ?? [] : input.value
+                    let val = input.value
                     let inputType = input.getAttribute(DEER.INPUTTYPE)
                     let arrKey = (input.hasAttribute(DEER.LIST)) ? input.getAttribute(DEER.LIST) : ""
                     if (input.hasAttribute(DEER.INPUTTYPE)) {
@@ -315,33 +371,35 @@ export default class DeerReport {
                     return fetch(DEER.URLS[action], {
                         method: (inputId) ? "PUT" : "POST",
                         headers: {
-                            "Content-Type": "application/json; charset=utf-8"
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Authorization": `Bearer ${window.GOG_USER.authorization}`
                         },
                         body: JSON.stringify(annotation)
                     })
                         .then(response => response.json())
                         .then(anno => {
                             input.setAttribute(DEER.SOURCE, anno.new_obj_state["@id"])
-                            if (anno.new_obj_state.evidence) input.setAttribute(DEER.EVIDENCE, anno.new_obj_state.evidence)
-                            if (anno.new_obj_state.motivation) input.setAttribute(DEER.MOTIVATION, anno.new_obj_state.motivation)
-                            if (anno.new_obj_state.creator) input.setAttribute(DEER.ATTRIBUTION, anno.new_obj_state.creator)
-                        })
+                            if(anno.new_obj_state.evidence)input.setAttribute(DEER.EVIDENCE, anno.new_obj_state.evidence)
+                            if(anno.new_obj_state.motivation)input.setAttribute(DEER.MOTIVATION, anno.new_obj_state.motivation)
+                            if(anno.new_obj_state.creator)input.setAttribute(DEER.ATTRIBUTION, anno.new_obj_state.creator)
+                            //TODO handle @context?
+                    })
                 })
             return Promise.all(annotations).then(() => {
-                UTILS.broadcast(undefined, DEER.EVENTS.UPDATED, this.elem, entity)
+                UTILS.broadcast(undefined,DEER.EVENTS.UPDATED, this.elem, entity)
                 return entity
             })
         }).bind(this))
             .then(entity => {
                 this.elem.setAttribute(DEER.ID, entity["@id"])
-                this.fillValues(this.inputs, new Map(Object.entries(entity)))
-            }).catch(err=>console.warn(err))
+                new DeerReport(this.elem)
+            })
     }
 
     simpleUpsert(event) {
         let record = {}
         //Since this is simple, we don't need to filter around $isDirty.
-        Array.from(this.elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(","))).forEach(input => {
+        Array.from(this.elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(","))).map(input => {
             let key = input.getAttribute(DEER.KEY)
             record[key] = {}
             let val = input.value
@@ -405,7 +463,7 @@ export default class DeerReport {
             }
         }
         if (this.type) { record.type = this.type }
-        if (this.context) { record["@context"] = this.context }
+        if (this.context) { record["@context"] = UTILS.processContextSyntax(this.context) }
         if (this.evidence) { record.evidence = this.evidence }
         let formId = this.elem.getAttribute(DEER.ID)
         let action = "CREATE"
@@ -416,7 +474,8 @@ export default class DeerReport {
         return fetch(DEER.URLS[action], {
             method: (formId) ? "PUT" : "POST",
             headers: {
-                "Content-Type": "application/json; charset=utf-8"
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization": `Bearer ${window.GOG_USER.authorization}`
             },
             body: JSON.stringify(record)
         })

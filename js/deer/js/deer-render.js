@@ -17,6 +17,8 @@ import { DEER, UTILS } from './deer-utils.js'
 import '../components/view/view.js'
 import '../components/view/entity.js'
 
+import pLimit from './plimit.js'
+
 const changeLoader = new MutationObserver(renderChange)
 
 /**
@@ -25,22 +27,27 @@ const changeLoader = new MutationObserver(renderChange)
  * @param {Array} mutationsList of MutationRecord objects
  */
 async function renderChange(mutationsList) {
-    for (const mutation of mutationsList) {
+    for (var mutation of mutationsList) {
         switch (mutation.attributeName) {
             case DEER.ID:
             case DEER.KEY:
             case DEER.LINK:
             case DEER.LIST:
                 let id = mutation.target.getAttribute(DEER.ID)
-                if (id === null || mutation.target.getAttribute(DEER.COLLECTION)) return
+                if (id === null ?? mutation.target.getAttribute(DEER.COLLECTION)) return
+                let obj = {}
                 try {
-                    new URL(id)
-                } catch(err) {
-                    // invalid URL, simple check
-                    return
+                    obj = JSON.parse(localStorage.getItem(id))
+                } catch (err) { }
+                if (!obj?.["@id"]) {
+                    id = id.replace(/^https?:/,'https:') // avoid mixed content
+                    obj = await fetch(id).then(response => response.json()).catch(error => error)
+                    if (obj) {
+                        localStorage.setItem(obj["@id"] ?? obj.id, JSON.stringify(obj))
+                    } else {
+                        return false
+                    }
                 }
-                let obj = await fetch(id?.replace(/https?:/,'https:')).then(response => response.json()).catch(error => error)
-                if (!obj) return false
                 RENDER.element(mutation.target, obj)
                 break
             case DEER.LISTENING:
@@ -48,66 +55,52 @@ async function renderChange(mutationsList) {
                 if (listensTo) {
                     mutation.target.addEventListener(DEER.EVENTS.CLICKED, e => {
                         let loadId = e.detail["@id"]
-                        if (loadId === listensTo) { mutation.target.setAttribute(DEER.ID, loadId) }
+                        if (loadId === listensTo) { mutation.target.setAttribute("deer-id", loadId) }
                     })
                 }
-        }
-        if (mutation.type === 'childList') {
-            RENDER.detectInsertions(elem)
         }
     }
 }
 
 const RENDER = {}
-RENDER.detectInsertions = elem => {
-    let newViews = (elem.querySelectorAll(DEER.VIEW).length) ? elem.querySelectorAll(DEER.VIEW) : []
-    let newForms = (elem.querySelectorAll(DEER.FORM).length) ? elem.querySelectorAll(DEER.VIEW) : []
-    if (newForms.length) {
-        UTILS.broadcast(undefined, DEER.EVENTS.NEW_FORM, elem, { set: newForms })
-    }
-    if (newViews.length) {
-        UTILS.broadcast(undefined, DEER.EVENTS.NEW_VIEW, elem, { set: newViews })
-    }
-}
-RENDER.applyTemplate = (elem, obj, template) => {
-    let options = {
-        list: elem.getAttribute(DEER.LIST),
-        link: elem.getAttribute(DEER.LINK),
-        collection: elem.getAttribute(DEER.COLLECTION),
-        key: elem.getAttribute(DEER.KEY),
-        label: elem.getAttribute(DEER.LABEL),
-        config: DEER
-    }
-    let templateResponse = template(obj, options)
-    elem.innerHTML = (typeof templateResponse.html === "string") ? templateResponse.html : templateResponse
-    //innerHTML may need a little time to finish to actually populate the template to the DOM, so do the timeout trick here.
-    /**
-     * A streamlined approach would treat each of these as a Promise-like node and the return of RENDER.element
-     * would be a Promise.  That way, something that looped and did may of these could do something like
-     * Promise.all() before firing a completion/failure event (or something).  
-     */
-    setTimeout(function () {
-        UTILS.broadcast(undefined, DEER.EVENTS.VIEW_RENDERED, elem, obj)
-    }, 0)
 
-    if (typeof templateResponse.then === "function") { templateResponse.then(elem, obj, options) }
-    //Note this is deprecated for the "deer-view-rendered" event.  above.  
-    UTILS.broadcast(undefined, DEER.EVENTS.LOADED, elem, obj)
-}
 RENDER.element = function (elem, obj) {
-    UTILS.worker.addEventListener("message", event => {
-        let templ = DEER.TEMPLATES[elem.getAttribute(DEER.TEMPLATE) || (elem.getAttribute(DEER.COLLECTION) ? "list" : "json")]
-        if (event.data.action === "expanded" && event.data.id === elem.getAttribute(DEER.ID)) {
-            RENDER.applyTemplate(elem, event.data.item, templ)
+
+    return UTILS.expand(obj).then(obj => {
+        let tmplName = elem.getAttribute(DEER.TEMPLATE) ?? (elem.getAttribute(DEER.COLLECTION) ? "list" : "json")
+        let template = DEER.TEMPLATES[tmplName] ?? DEER.TEMPLATES.json
+        let options = {
+            list: elem.getAttribute(DEER.LIST),
+            link: elem.getAttribute(DEER.LINK),
+            collection: elem.getAttribute(DEER.COLLECTION),
+            key: elem.getAttribute(DEER.KEY),
+            label: elem.getAttribute(DEER.LABEL),
+            index: elem.getAttribute("deer-index"),
+            config: DEER
         }
-    })
-    UTILS.postView(obj, undefined, {
-        list: elem.getAttribute(DEER.LIST),
-        link: elem.getAttribute(DEER.LINK),
-        collection: elem.getAttribute(DEER.COLLECTION),
-        key: elem.getAttribute(DEER.KEY),
-        label: elem.getAttribute(DEER.LABEL),
-        config: DEER
+        let templateResponse = template(obj, options)
+        elem.innerHTML = (typeof templateResponse.html === "string") ? templateResponse.html : templateResponse
+        //innerHTML may need a little time to finish to actually populate the template to the DOM, so do the timeout trick here.
+        /**
+         * A streamlined approach would treat each of these as a Promise-like node and the return of RENDER.element
+         * would be a Promise.  That way, something that looped and did may of these could do something like
+         * Promise.all() before firing a completion/failure event (or something).  
+         */
+        setTimeout(function () {
+            let newViews = (elem.querySelectorAll(config.VIEW).length) ? elem.querySelectorAll(config.VIEW) : []
+            let newForms = (elem.querySelectorAll(config.FORM).length) ? elem.querySelectorAll(config.VIEW) : []
+            if (newForms.length) {
+                UTILS.broadcast(undefined, DEER.EVENTS.NEW_FORM, elem, { set: newForms })
+            }
+            if (newViews.length) {
+                UTILS.broadcast(undefined, DEER.EVENTS.NEW_VIEW, elem, { set: newViews })
+            }
+            UTILS.broadcast(undefined, DEER.EVENTS.VIEW_RENDERED, elem, obj)
+        }, 0)
+
+        if (typeof templateResponse.then === "function") { templateResponse.then(elem, obj, options) }
+        //Note this is deprecated for the "deer-view-rendered" event.  above.  
+        UTILS.broadcast(undefined, DEER.EVENTS.LOADED, elem, obj)
     })
 }
 
@@ -242,13 +235,15 @@ DEER.TEMPLATES.event = function (obj, options = {}) {
     }
 }
 
+const limiter = pLimit(10)
+
 export default class DeerRender {
     constructor(elem, deer = {}) {
         for (let key in DEER) {
             if (typeof DEER[key] === "string") {
-                DEER[key] = deer[key] || DEER[key]
+                DEER[key] = deer[key] ?? config[key]
             } else {
-                DEER[key] = Object.assign(DEER[key], deer[key])
+                DEER[key] = Object.assign(config[key], deer[key])
             }
         }
         changeLoader.observe(elem, {
@@ -260,14 +255,14 @@ export default class DeerRender {
         this.elem = elem
 
         try {
-            if (!(this.id || this.collection)) {
+            if (!(this.id ?? this.collection)) {
                 let err = new Error(this.id + " is not a valid id.")
                 err.code = "NO_ID"
                 throw err
             } else {
                 if (this.id) {
-                    new URL(this.id)
-                    fetch(this.id?.replace(/https?:/,'https:')).then(response => response.json()).then(obj => RENDER.element(this.elem, obj)).catch(err => err)
+                    this.id = this.id.replace(/^https?:/,'https:') // avoid mixed content
+                    limiter(() => fetch(this.id).then(response => response.json()).then(obj => RENDER.element(this.elem, obj)).catch(err => err))
                 } else if (this.collection) {
                     // Look not only for direct objects, but also collection annotations
                     // Only the most recent, do not consider history parent or children history nodes
@@ -277,30 +272,44 @@ export default class DeerRender {
                             "targetCollection": this.collection
                         }, {
                             "body.targetCollection": this.collection
+                        }, {
+                            "body.partOf": this.collection
                         }],
                         "__rerum.history.next": historyWildcard
                     }
-                    fetch(DEER.URLS.QUERY+"?limit=100&skip=0", {
-                        method: "POST",
-                        mode: "cors",
-                        body: JSON.stringify(queryObj)
-                    }).then(response => response.json())
-                        .then(pointers => {
-                            let list = []
-                            pointers.map(tc => list.push(fetch(tc.target || tc["@id"] || tc.id).then(response => response.json().catch(err => { __deleted: console.log(err) }))))
-                            return Promise.all(list).then(l => l.filter(i => !i.hasOwnProperty("__deleted")))
-                        })
-                        .then(list => {
-                            let listObj = {
-                                name: this.collection,
-                                itemListElement: list
-                            }
-                            this.elem.setAttribute(DEER.LIST, "itemListElement")
-                            try {
-                                listObj["@type"] = list[0]["@type"] || list[0].type || "ItemList"
-                            } catch (err) { }
+                    const listObj = {
+                        name: this.collection,
+                        itemListElement: []
+                    }
+
+                    getPagedQuery.bind(this)(100)
+                        .then(() => RENDER.element(this.elem, listObj))
+                        .catch(err => {
+                            console.error("Broke with listObj at ", listObj)
                             RENDER.element(this.elem, listObj)
                         })
+
+                    function getPagedQuery(lim, it = 0) {
+                        const q = DEER.URLS.QUERY.replace("?limit=100&skip=0", "")
+                        return fetch(`${q}?limit=${lim}&skip=${it}`, {
+                            method: "POST",
+                            mode: "cors",
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8"
+                            },
+                            body: JSON.stringify(queryObj)
+                        }).then(response => response.json())
+                            .then(list => {
+                                listObj.itemListElement = listObj.itemListElement.concat(list.map(anno => ({ '@id': anno.target ?? anno["@id"] ?? anno.id })))
+                                this.elem.setAttribute(DEER.LIST, "itemListElement")
+                                try {
+                                    listObj["@type"] = list[0]["@type"] ?? list[0].type ?? "ItemList"
+                                } catch (err) { }
+                                if (list.length ?? (list.length % lim === 0)) {
+                                    return getPagedQuery.bind(this)(lim, it + list.length)
+                                }
+                            })
+                    }
                 }
             }
         } catch (err) {
@@ -314,13 +323,13 @@ export default class DeerRender {
 
         let listensTo = elem.getAttribute(DEER.LISTENING)
         if (listensTo) {
-            elem.addEventListener('deer-clicked', e => {
+            elem.addEventListener(DEER.EVENTS.CLICKED, e => {
                 try {
                     if (e.detail.target.closest(DEER.VIEW + "," + DEER.FORM).getAttribute("id") === listensTo) elem.setAttribute(DEER.ID, e.detail.target.closest('[' + DEER.ID + ']').getAttribute(DEER.ID))
                 } catch (err) { }
             })
             try {
-                window[listensTo].addEventListener("click", e => UTILS.broadcast(e, 'deer-clicked', elem))
+                window[listensTo].addEventListener("click", e => UTILS.broadcast(e, DEER.EVENTS.CLICKED, elem))
             } catch (err) {
                 console.error("There is no HTML element with id " + listensTo + " to attach an event to")
             }
@@ -341,7 +350,7 @@ export default class DeerRender {
  */
 export function initializeDeerViews(config) {
     return new Promise((res) => {
-        const views = document.querySelectorAll('deer-view, .deer-view')
+        const views = document.querySelectorAll(config.VIEW)
         Array.from(views).forEach(elem => new DeerRender(elem, config))
         document.addEventListener(DEER.EVENTS.NEW_VIEW, e => Array.from(e.detail.set).forEach(elem => new DeerRender(elem, config)))
         /**
@@ -351,6 +360,46 @@ export function initializeDeerViews(config) {
         setTimeout(res, 200) //A small hack to ensure all the HTML generated by processing the views enters the DOM before this says it has resolved.
         //Failed 5 times at 100
         //Failed 0 times at 200
+    })
+}
+
+/**
+ * Checks array of stored roles for any of the roles provided.
+ * @param {Array} roles Strings of roles to check.
+ * @returns Boolean user has one of these roles.
+ */
+function userHasRole(roles){
+    if (!Array.isArray(roles)) { roles = [roles] }
+    return Boolean(window.GOG_USER?.["http://rerum.io/user_roles"]?.roles.filter(r=>roles.includes(r)).length)
+}
+
+function httpsIdArray(id,justArray) {
+    if (!id.startsWith("http")) return justArray ? [ id ] : id
+    if (id.startsWith("https://")) return justArray ? [ id, id.replace('https','http') ] : { $in: [ id, id.replace('https','http') ] }
+    return justArray ? [ id, id.replace('http','https') ] : { $in: [ id, id.replace('http','https') ] }
+}
+
+function pagedQuery(lim, it = 0, queryObj, allResults = []) {
+    const q = DEER.URLS.QUERY.replace("?limit=100&skip=0", "")
+    return fetch(`${q}?limit=${lim}&skip=${it}`, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+            "Content-Type": "application/json; charset=utf-8"
+        },
+        body: JSON.stringify(queryObj)
+    })
+    .then(response => response.json())
+    .then(results => {
+        if (results.length) {
+            allResults = allResults.concat(results)
+            return pagedQuery(lim, it + results.length, queryObj, allResults)
+        }
+        return allResults
+    })
+    .catch(err => {
+        console.warn("Could not process a result in paged query")
+        throw err
     })
 }
 
