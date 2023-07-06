@@ -8,7 +8,8 @@
  * @org SLU, Research Computing Group
  */
 
-import { UTILS, DEER } from '../../js/deer-utils.js'
+import { default as UTILS } from '../../js/deer-utils.js'
+import { default as DEER } from '../../js/deer-config.js'
 import '../templates/default.js'
 import DeerView from './view.js'
 
@@ -59,7 +60,7 @@ export default class DeerCollection extends DeerView {
         try {
             listObj["@type"] = list?.[0]["@type"] ?? list?.[0].type ?? "ItemList"
         } catch (err) { }
-        UTILS.postEntity(listObj)
+        //UTILS.postEntity(listObj)
         this.setAttribute(DEER.ID,listObj.id)
         return
     }

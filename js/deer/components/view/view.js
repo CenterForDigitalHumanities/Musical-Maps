@@ -8,7 +8,8 @@
  * @org SLU, Research Computing Group
  */
 
-import { UTILS, DEER } from '../../js/deer-utils.js'
+import { default as UTILS } from '../../js/deer-utils.js'
+import { default as DEER } from '../../js/deer-config.js'
 import '../templates/default.js'
 
 const template = (obj, options = {}) => {
@@ -65,7 +66,7 @@ export default class DeerView extends HTMLElement {
             case DEER.LIST:
                 const id = this.getAttribute(DEER.ID)
                 if (id === null) { return }
-                UTILS.postView(id)
+//                UTILS.postView(id)
                 break
             case DEER.LISTENING:
                 const listensTo = this.getAttribute(DEER.LISTENING)

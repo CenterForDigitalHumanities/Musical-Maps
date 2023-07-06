@@ -11,7 +11,8 @@
  * @see tiny.rerum.io
  */
 
-import { DEER, UTILS } from './deer-utils.js'
+import { default as UTILS } from './deer-utils.js'
+import { default as DEER } from './deer-config.js'
 
 // import views
 import '../components/view/view.js'

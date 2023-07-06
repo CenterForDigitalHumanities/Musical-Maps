@@ -5,7 +5,8 @@
  * @org     SLU, Research Computing Group
  */
 
-import { UTILS, DEER } from './deer-utils.js'
+import { default as UTILS } from './deer-utils.js'
+import { default as DEER } from './deer-config.js'
 
 const EntityMap = new Map()
 
