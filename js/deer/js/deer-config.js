@@ -17,10 +17,10 @@ export default {
     LISTENING: namespace + "-listening", // attribute, name of container to watch for clicks
     LINK: namespace + "-link", // attribute, location of href#[deer-id] for <a>s
     FORM: "form[" + namespace + "-type]", // selector, identifies data entry containers
-    ITEMTYPE: namespace + "item-type", //attribute, specialty forms ('entity' by default)
+    ITEMTYPE: namespace + "-item-type", //attribute, specialty forms ('entity' by default)
     SOURCE: namespace + "-source", // attribute, URI for asserting annotation
     EVIDENCE: "nv-evidence", // attribute, URI for supporting evidence
-    INPUTTYPE: "input-type", //attribute, defines whether this is an array list, array set, or object 
+    INPUTTYPE: namespace + "-input-type", //attribute, defines whether this is an array list, array set, or object 
     ARRAYDELIMETER: "array-delimeter", //attribute, denotes delimeter to use for array.join()
 
     INPUTS: ["input", "textarea", "dataset", "select"], // array of selectors, identifies inputs with .value

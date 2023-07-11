@@ -39,10 +39,18 @@ img.brand {
     max-height: 3em;
 }
 
-form::before {
+/*form::before {
     content: "Form for " attr(deer-id);
     font-style: italic;
     opacity: .7;
     display: block;
     position: relative;
+}*/
+
+.is-hidden{
+    display: none;
+}
+
+.separate{
+    margin-top: 10em;
 }

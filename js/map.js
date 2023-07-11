@@ -285,7 +285,8 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
         const query = {
             "target" : MAPVIEWER.httpsIdArray(dataURL),
             "body.presentAt" : {$exists:true},
-            "__rerum.history.next":{ $exists: true, $eq: [] }
+            "__rerum.history.next":{ $exists: true, $eq: [] },
+            'creator' : 'mm-prototype'
         }
 
         let entityEvents = await fetch("https://tinydev.rerum.io/app/query?limit=100&skip=0", {
