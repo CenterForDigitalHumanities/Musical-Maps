@@ -36,6 +36,7 @@ DEER.TEMPLATES.label = (obj, options = {}) => {
     let prop = obj[options.key] ?? obj.id ?? obj['@id'] ?? "[ undefined ]"
     let label = options.label ?? UTILS.getLabel(obj, prop)
     try {
+        if('[ unlabeled ]' === label) throw new Error("inadequate label, no change")
         return `${label}`
     } catch (err) {
         return null
@@ -51,16 +52,27 @@ DEER.TEMPLATES.label = (obj, options = {}) => {
 DEER.TEMPLATES.list = function (obj, options = {}) {
     let tmpl = `<h2>${options.label ?? UTILS.getLabel(obj)}</h2>`
     if (options.list) {
+        const entry = (val,name) => options.includeLabel ? `<deer-view ${DEER.ID}="${val["@id"]}" ${DEER.TEMPLATE}="label">${name}</deer-view>` : `${name}`
         tmpl += `<ul>`
         try {
             obj[options.list].forEach((val, index) => {
                 let name = UTILS.getLabel(val, (val.type || val['@type'] || index))
-                tmpl += (val["@id"] && options.link) ? `<li ${DEER.ID}="${val["@id"]}"><a href="${options.link}${val["@id"]}">${name}</a></li>` : `<li ${DEER.ID}="${val["@id"]}">${name}</li>`
+                tmpl += (val["@id"] && options.link) ? `<li ${DEER.ID}="${val["@id"]}"><a href="${options.link}${val["@id"]}">${entry(val,name)}</a></li>` : `<li ${DEER.ID}="${val["@id"]}">${entry(val,name)}</li>`
             })
         } catch (meh) { }
         tmpl += `</ul>`
     }
     return tmpl
+}
+
+/**
+ * Render an object expected to containa list.  
+ * Consider that this may be changed to a Class component in the future.
+ * @param {Object} obj some obj to be labeled
+ * @param {Object} options for lookup
+ */
+DEER.TEMPLATES.labelList = function (obj, options = {}) {
+    return DEER.TEMPLATES.list(obj,Object.assign(options,{includeLabel:true}))
 }
 
 /**
