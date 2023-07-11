@@ -24,7 +24,7 @@ async function renderChange(mutationsList) {
             case DEER.ID:
                 let id = mutation.target.getAttribute(DEER.ID)
                 if (id === null) return
-                const obj = await fetch(id).then(response => response.json()).catch(error => error)
+                const obj = await getObject(id)
                 mutation.target.DeerReport.fillValues(new Map(Object.entries(obj)))
                 break
             case DEER.LISTENING:
@@ -36,6 +36,64 @@ async function renderChange(mutationsList) {
                     })
                 }
         }
+    }
+}
+
+async function getObject(findId) {
+
+    let obj = fetch(findId).then(res => res.json())
+    let annos = findByTargetId(findId,[],DEER.URLS.QUERY)
+    await Promise.all([obj, annos]).then(res => {
+        annos = res[1]
+        obj = res[0]
+    })
+    annos.forEach(anno=>obj = applyAssertions(obj,anno.body))
+
+    return obj
+
+    function applyAssertions(assertOn, annotationBody) {
+        if (Array.isArray(annotationBody)) { return annotationBody.forEach(a=>applyAssertions(assertOn,a)) }
+    
+        const assertions = {}
+        Object.entries(annotationBody).forEach(([k, v]) => {
+            const assertedValue = UTILS.getValue(v)
+            if ( [undefined,null,"",[],assertOn[k]].flat().includes(assertedValue) ) { return }
+            if (assertOn.hasOwnProperty(k) && ![undefined,null,"",[]].includes(assertOn[k]) ) {
+                Array.isArray(assertions[k]) ? assertions[k].push(assertedValue).flat() : assertions[k] = [assertOn[k],assertedValue].flat()
+            } else {
+                assertions[k] = assertedValue
+            }
+        })
+    
+        // Simplify any arrays of length 1, which may not be a good idea.
+        Object.entries(assertions).forEach(([k, v]) => { if (Array.isArray(v) && v.length === 1) { v = v[0] } })
+    
+        return Object.assign(assertOn, assertions)
+    }
+
+    async function findByTargetId(id, targetStyle = [], queryUrl = DEER.URLS.QUERY) {
+        if (!Array.isArray(targetStyle)) {
+            targetStyle = [targetStyle]
+        }
+        targetStyle = targetStyle.concat(["target", "target.@id", "target.id"]) //target.source?
+        let historyWildcard = { "$exists": true, "$size": 0 }
+        let obj = { "$or": [], "__rerum.history.next": historyWildcard }
+        for (let target of targetStyle) {
+            if (typeof target === "string") {
+                let o = {}
+                o[target] = id
+                obj["$or"].push(o)
+            }
+        }
+        return fetch(queryUrl+"?limit=100&skip=0", {
+            method: "POST",
+            body: JSON.stringify(obj),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+            .then(response => response.json())
+            .catch((err) => console.error(err))
     }
 }
 
@@ -88,6 +146,45 @@ export default class DeerReport {
             this.inputs.forEach(inpt => {
                 if (inpt.type === "hidden") { inpt.$isDirty = true }
             })
+            let listensTo = elem.getAttribute(DEER.LISTENING)
+            if (listensTo) {
+                window[listensTo].addEventListener?.('click', e => {
+                    elem.setAttribute(DEER.ID, e.target.closest(`[${DEER.ID}]`).getAttribute(DEER.ID))
+                })
+            }
+
+        }
+    }
+
+    fillValues(valueMap) {
+
+        if(valueMap.get('@id')){
+            this.id = valueMap.get('@id') ?? valueMap.get('id')
+        }
+        try {
+            const flatKeys = [...new Set(this.inputs.map(input => input.getAttribute(DEER.KEY)))]
+            const redundant = this.inputs.length - flatKeys.length
+            if (redundant > 0) {
+                UTILS.warning(redundant + " duplicate input " + DEER.KEY + " attribute value" + (redundant === 1) ? "" : "s" + " detected in form. Some inputs will be ignored upon form submission and only the first instance will be respected.", this.inputs)
+            }
+            this.inputs.forEach(elem => UTILS.assertElementValue(elem, Object.fromEntries(valueMap)))
+        } catch (err) { console.log(err) }
+        setTimeout(function () {
+            /*
+            *  The difference between a view and a form is that a view does not need to know the annotation data of its sibling views.  
+            *  A form needs to know the annotation data of all its child views to populate values, but this hierarchy is not inherent.
+            *  
+            *  This event works because of deerInitializer.js.  It loads all views in a Promise that uses a timeout
+            *  in its resolve state, giving all innerHTML = `something` calls time to make it to the DOM before this event broadcasts.  
+            *  You will notice that the "deer-view-rendered" events all happen before this event is fired on respective HTML pages.
+            *  This lets the script know forms are open for dynamic rendering interaction, like pre-filling or pre-selecting values.
+            */
+            UTILS.broadcast(undefined, DEER.EVENTS.FORM_RENDERED, this.elem, Object.fromEntries(valueMap))
+        }, 0)
+        this.elem.click()
+        const submitBtn = this.elem.querySelector('button[type="submit"]')
+        if(submitBtn){
+            submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
         }
     }
 
@@ -129,13 +226,6 @@ export default class DeerReport {
 
         if (!this.$isDirty) {
             UTILS.warning(event.target.id + " form submitted unchanged.")
-        }
-        if (this.elem.getAttribute(DEER.ITEMTYPE) === "simple") {
-            return this.simpleUpsert(event).then(entity => {
-                //Notice that sipleUpsert may return {} in certain controlled situations, causing an undefined error here, on purpose.
-                this.elem.setAttribute(DEER.ID, entity["@id"])
-                new DeerReport(this.elem)
-            })
         }
         let record = {
             "@type": this.type

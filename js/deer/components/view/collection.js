@@ -33,7 +33,7 @@ export default class DeerCollection extends DeerView {
             }],
             "__rerum.history.next": historyWildcard
         }
-        const pointers = await fetch(DEER.URLS.QUERY, {
+        const pointers = await fetch(DEER.URLS.QUERY+"?limit=1000&skip=0", {
             method: "POST",
             mode: "cors",
             headers:{
@@ -66,8 +66,12 @@ export default class DeerCollection extends DeerView {
 
     constructor() {
         super()
-        this.#loadCollection().catch(err=>console.error(err))
+        this.reload()
         this.template = DEER.TEMPLATES[this.getAttribute(DEER.TEMPLATE) ?? 'list']
+    }
+
+    reload() {
+        this.#loadCollection().catch(err=>console.error(err))
     }
 }
 

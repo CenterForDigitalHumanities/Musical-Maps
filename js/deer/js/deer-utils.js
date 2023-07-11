@@ -292,6 +292,13 @@ const utils = {
                  * If no annotations are found, DEER will aribitrarily pick the last string or number encountered.   
                  * DEER does not technically support this situation, but can make a best guess and help it along...
                  */
+                if(elem.hasAttribute('multiple')) {
+                    assertedValue.forEach(v=>{
+                        const val = this.getValue(v)
+                        elem.querySelector(`[value="${val}"]`)?.setAttribute('selected',true)
+                    })
+                    return
+                }
                 this.warning("There are multiple possible values for key '" + deerKeyValue + "'. See below. ", assertedValue)
                 let arbitraryAssertedValue = ""
                 for (let entry of assertedValue) {
@@ -374,7 +381,7 @@ const utils = {
         if (elem.type === "hidden") {
             if (elem.hasAttribute("value") && elem.value !== undefined) {
                 if (!mapsToAnno || elem.value !== assertedValue) {
-                    elem.$isDirty = true
+                    elem.$isDirty = !(assertedValue.some?.(elem.value) ?? assertedValue == elem.value)
                     if (elem.value !== assertedValue && elem.hasAttribute(DEER.INPUTTYPE)) {
                         this.warning("Hidden element with a hard coded 'value' also contains attributes '" + DEER.KEY + "' and '" + DEER.INPUTTYPE + "'.  " +
                             "DEER takes this to mean the '" + elem.getAttribute(DEER.KEY) + "' annotation body value array will .join() into this string and pass a comparison operation. " +

@@ -25,7 +25,7 @@ export default {
 
     INPUTS: ["input", "textarea", "dataset", "select"], // array of selectors, identifies inputs with .value
     CONTAINERS: ["ItemList", "ItemListElement", "List", "Set", "list", "set", "@list", "@set"], // array of supported list and set types the app will dig into for array values
-    PRIMITIVES: ["name", "creator", "label"],
+    PRIMITIVES: ["name", "creator", "label", "date", "location"],
 
     URLS: {
         CREATE: base_tt + "/create",
