@@ -118,7 +118,7 @@
                         'body.presentAt': { $exists: true }
                     })
                 }).then(response => response.json())
-                .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
+                .then(eventIds => Promise.all(eventIds.map(uri => fetch(uri.body.presentAt.value?.['@id'] ?? uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
                         const eventMatch = events.filter(ev=>ev["@type"] === "Death")
                         if (eventMatch.length > 0) {
@@ -127,14 +127,40 @@
                         }
                     })
             })()
-        document.addEventListener('deer-updated', ev => {
-            // fire only when new event is created
+            document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOD") { return } // not the right form
-            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
-            personSubmit.click()
+            const date = { value: document.querySelector('[deer-key="date"]').value }
+            const location = { value: document.querySelector('[deer-key="location"]').value }
+            const creator = document.querySelector('[deer-key="creator"]').value
+            const presentAt = {
+                value: {
+                    "@context":"http://schema.org",
+                    "@id": newEvent['@id'],
+                    name: document.querySelector('[deer-key="name"]').value,
+                    date,
+                    location
+                }
+            }
+            const deathDate = date
+            const deathPlace = location
+
+            ;[{presentAt},{deathDate},{deathPlace}].forEach(prop=>{
+                const propName = Object.keys(prop).pop()
+                const anno = {
+                    type: "Annotation",
+                    '@context' : "http://www.w3.org/ns/anno.jsonld",
+                    creator,
+                    target: window.hashCache,
+                    body: prop
+                }
+                fetch("https://tinydev.rerum.io/app/create", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8"
+                    },
+                    body: JSON.stringify(anno)
+                }).catch(err=>alert(err.message ?? err))
+            })
         })
     </script>
 </body>
