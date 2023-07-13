@@ -188,6 +188,34 @@ export default class DeerReport {
         }
     }
 
+    fillValues(valueMap) {
+
+        if(valueMap.get('@id')){
+            this.id = valueMap.get('@id') ?? valueMap.get('id')
+        }
+        try {
+            const flatKeys = [...new Set(this.inputs.map(input => input.getAttribute(DEER.KEY)))]
+            const redundant = this.inputs.length - flatKeys.length
+            if (redundant > 0) {
+                UTILS.warning(redundant + " duplicate input " + DEER.KEY + " attribute value" + (redundant === 1) ? "" : "s" + " detected in form. Some inputs will be ignored upon form submission and only the first instance will be respected.", this.inputs)
+            }
+            this.inputs.forEach(elem => UTILS.assertElementValue(elem, Object.fromEntries(valueMap)))
+        } catch (err) { console.log(err) }
+        setTimeout(function () {
+            /*
+            *  The difference between a view and a form is that a view does not need to know the annotation data of its sibling views.  
+            *  A form needs to know the annotation data of all its child views to populate values, but this hierarchy is not inherent.
+            *  
+            *  This event works because of deerInitializer.js.  It loads all views in a Promise that uses a timeout
+            *  in its resolve state, giving all innerHTML = `something` calls time to make it to the DOM before this event broadcasts.  
+            *  You will notice that the "deer-view-rendered" events all happen before this event is fired on respective HTML pages.
+            *  This lets the script know forms are open for dynamic rendering interaction, like pre-filling or pre-selecting values.
+            */
+            UTILS.broadcast(undefined, DEER.EVENTS.FORM_RENDERED, this.elem, Object.fromEntries(valueMap))
+        }, 0)
+        this.elem.click()
+    }
+
     processRecord(event) {
         event.preventDefault()
         this.evidence = this.elem.getAttribute(DEER.EVIDENCE) // inherited to inputs
