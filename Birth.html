@@ -59,32 +59,10 @@
 
             <button type="submit" class="btn btn-primary">Create Birth 🎂</button>
         </form>
-<!-- TODO: Remove this Person form and make an automated submission
- on the event that is created new here or loaded without a 
- reflexive annotation included. -->
-        <form deer-type="Person" hash-id id="person">
-            <input deer-key="creator" value="mm-prototype" type="hidden">
-            <div class="row">
-                <div class="form-group col">
-                    <label for="presentAt">Present At</label>
-                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group col-md-6">
-                    <label for="birthDate">Birthdate</label>
-                    <input type="date" class="form-control" deer-key="birthDate" name="birthDate">
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="birthPlace">Birth Place</label>
-                    <input type="url" class="form-control" deer-key="birthPlace" name="birthPlace">
-                </div>
-            </div>
-            <button type="submit" id="personSubmit" class="btn btn-primary">Update Person</button>
-        </form>
     </div>
     <script>
         // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
+
         geoNameInput.addEventListener('input', ev => {
             const queryLocation = ev.target.value?.split(',')
             const city = queryLocation[0].trim()
@@ -105,6 +83,7 @@
                 if (!hash) { return }
                 const rerumPrefix = "https://devstore.rerum.io/v1/id/"
                 if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
+                window.hashCache = hash
                 fetch(hash).then(res => res.json()).then(person => {
                     if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
                     const nameInput = document.querySelector('[name="name"]')
@@ -120,23 +99,49 @@
                         'body.presentAt': { $exists: true }
                     })
                 }).then(response => response.json())
-                .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
+                    .then(eventIds => Promise.all(eventIds.map(uri => fetch(uri.body.presentAt.value?.['@id'] ?? uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "Birth")
+                        const eventMatch = events.filter(ev => ev["@type"] === "Birth")
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
                             DOB.setAttribute("deer-id", eventMatch.pop()?.['@id'])
                         }
                     })
             })()
-        document.addEventListener('deer-updated', ev => {
-            // fire only when new event is created
+        document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOB") { return } // not the right form
-            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="birthDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="birthPlace"]').setAttribute('value', geoNameInput.value)
-            personSubmit.click()
+            const date = { value: document.querySelector('[deer-key="date"]').value }
+            const location = { value: document.querySelector('[deer-key="location"]').value }
+            const creator = document.querySelector('[deer-key="creator"]').value
+            const presentAt = {
+                value: {
+                    "@context":"http://schema.org",
+                    "@id": newEvent['@id'],
+                    name: document.querySelector('[deer-key="name"]').value,
+                    date,
+                    location
+                }
+            }
+            const birthDate = date
+            const birthPlace = location
+
+            ;[{presentAt},{birthDate},{birthPlace}].forEach(prop=>{
+                const propName = Object.keys(prop).pop()
+                const anno = {
+                    type: "Annotation",
+                    '@context' : "http://www.w3.org/ns/anno.jsonld",
+                    creator,
+                    target: window.hashCache,
+                    body: prop
+                }
+                fetch("https://tinydev.rerum.io/app/create", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8"
+                    },
+                    body: JSON.stringify(anno)
+                }).catch(err=>alert(err.message ?? err))
+            })
         })
     </script>
 </body>
