@@ -99,9 +99,8 @@
                         'body.presentAt': { $exists: true }
                     })
                 }).then(response => response.json())
-                    .then(eventIds => Promise.all(eventIds.map(uri => fetch(uri.body.presentAt.value?.['@id'] ?? uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev => ev["@type"] === "Birth")
+                        const eventMatch = events.filter(ev=>ev.body.presentAt.value["@type"] === "Birth")
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
                             DOB.setAttribute("deer-id", eventMatch.pop()?.['@id'])
@@ -117,6 +116,7 @@
                 value: {
                     "@context":"http://schema.org",
                     "@id": newEvent['@id'],
+                    "@type": newEvent['@type'],
                     name: document.querySelector('[deer-key="name"]').value,
                     date,
                     location

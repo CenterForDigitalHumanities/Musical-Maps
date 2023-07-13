@@ -59,27 +59,6 @@
 
             <button type="submit" class="btn btn-primary">Create Death</button>
         </form>
-
-        <form deer-type="Person" hash-id id="person">
-            <input deer-key="creator" value="mm-prototype" type="hidden">
-            <div class="row">
-                <div class="form-group col">
-                    <label for="presentAt">Present At</label>
-                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group col-md-6">
-                    <label for="deathDate">Deathdate</label>
-                    <input type="date" class="form-control" deer-key="deathDate" name="deathDate">
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="deathPlace">Death Place</label>
-                    <input type="url" class="form-control" deer-key="deathPlace" name="deathPlace">
-                </div>
-            </div>
-            <button type="submit" id="personSubmit" class="btn btn-primary">Update Person</button>
-        </form>
     </div>
     <script>
         // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
@@ -118,9 +97,8 @@
                         'body.presentAt': { $exists: true }
                     })
                 }).then(response => response.json())
-                .then(eventIds => Promise.all(eventIds.map(uri => fetch(uri.body.presentAt.value?.['@id'] ?? uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "Death")
+                        const eventMatch = events.filter(ev=>ev.body.presentAt.value["@type"] === "Death")
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
                             DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
@@ -136,6 +114,7 @@
                 value: {
                     "@context":"http://schema.org",
                     "@id": newEvent['@id'],
+                    "@type":newEvent['@type'],
                     name: document.querySelector('[deer-key="name"]').value,
                     date,
                     location
