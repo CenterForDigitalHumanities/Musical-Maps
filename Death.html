@@ -101,7 +101,7 @@
                         const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "Death")
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
-                            DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
+                            DOD.setAttribute("deer-id", eventMatch.pop()?.body.presentAt.value['@id'])
                         }
                     })
             })()
