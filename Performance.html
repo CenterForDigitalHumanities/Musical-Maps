@@ -121,7 +121,7 @@
                     .then(events => {
                         const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "MusicEvent")
                         if (eventMatch.length > 0) {
-                            performances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
+                            performances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b.body.presentAt.value['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
                         }
                     })
             })()

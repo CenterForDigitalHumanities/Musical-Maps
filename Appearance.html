@@ -122,7 +122,7 @@
                         const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "Event")
 
                         if (eventMatch.length > 0) {
-                            appearances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
+                            appearances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b.body.presentAt.value['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
                         }
                     })
             })()

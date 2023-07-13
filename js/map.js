@@ -93,7 +93,7 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                 console.warn(`${property} property aggregation limit [${MAPVIEWER.resourceFindLimit}] reached`)
                 return allPropertyInstances
             }
-            let geo = data[prop]
+            let geo = data[prop]?.value ?? data[prop]?.['@value'] ?? data[prop]
             if(geo === null || geo === undefined){
                 continue
             }
@@ -300,25 +300,17 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
             let list = []
             pointers.forEach(pa => {
                 // presentAt can be a String URI or an Array of String URIs, or null/undefined
-                if(pa.body && pa.body.presentAt && pa.body.presentAt.value){
-                    if(Array.isArray(pa.body.presentAt.value)){
-                        pa.body.presentAt.value.forEach(uri => {
-                            if(typeof uri === "string"){
-                                list.push(fetch(uri).then(response => response.json()))    
-                            }
-                            else{
-                                list.push(uri)
-                            }
-                        })
-                    }
-                    else{
-                        if(typeof pa.body.presentAt.value === "string"){
-                            list.push(fetch(pa.body.presentAt.value).then(response => response.json()))    
-                        }
-                        else{
-                            list.push(pa.body.presentAt.value)
-                        }
-                    }
+                if(!pa.body?.presentAt?.value) { return }
+                const paVal = pa.body.presentAt.value
+                if (paVal.date) {
+                    list.push(Promise.resolve(paVal))
+                    return
+                }
+                try {
+                    const uri = new URL(paVal['@id'] ?? paVal.id ?? paVal)
+                    list.push(fetch(uri.href).then(r=>r.json()))
+                } catch(err){
+                    console.warn(err)
                 }
             })
             return Promise.all(list)    
