@@ -62,7 +62,8 @@
                 </div>
                 <div class="form-group col-md-6">
                     <label for="description">Description</label>
-                    <textarea name="description" id="description" class="form-control" deer-key="description" placeholder="short notes or description of the event"></textarea>
+                    <textarea name="description" id="description" class="form-control" deer-key="description"
+                        placeholder="short notes or description of the event"></textarea>
                 </div>
             </div>
 
@@ -118,20 +119,20 @@
                     })
                 }).then(response => response.json())
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev.body.presentAt.value["@type"] === "MusicEvent")
+                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "MusicEvent")
                         if (eventMatch.length > 0) {
-                            performances.innerHTML = eventMatch.reduce((a,b)=>a+=`<li deer-id="${b['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`,``)
+                            performances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
                         }
                     })
             })()
-            document.addEventListener('deer-created', ev => {
+        document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
             const date = { value: document.querySelector('[deer-key="date"]').value }
             const location = { value: document.querySelector('[deer-key="location"]').value }
             const creator = document.querySelector('[deer-key="creator"]').value
             const presentAt = {
                 value: {
-                    "@context":"http://schema.org",
+                    "@context": "http://schema.org",
                     "@id": newEvent['@id'],
                     "@type": newEvent['@type'],
                     name: document.querySelector('[deer-key="name"]').value,
@@ -140,25 +141,25 @@
                 }
             }
 
-            ;[{presentAt}].forEach(prop=>{
-                const propName = Object.keys(prop).pop()
-                const anno = {
-                    type: "Annotation",
-                    '@context' : "http://www.w3.org/ns/anno.jsonld",
-                    creator,
-                    target: window.hashCache,
-                    body: prop
-                }
-                fetch("https://tinydev.rerum.io/app/create", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    },
-                    body: JSON.stringify(anno)
-                }).catch(err=>alert(err.message ?? err))
-            })
+                ;[{ presentAt }].forEach(prop => {
+                    const propName = Object.keys(prop).pop()
+                    const anno = {
+                        type: "Annotation",
+                        '@context': "http://www.w3.org/ns/anno.jsonld",
+                        creator,
+                        target: window.hashCache,
+                        body: prop
+                    }
+                    fetch("https://tinydev.rerum.io/app/create", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        body: JSON.stringify(anno)
+                    }).catch(err => alert(err.message ?? err))
+                })
         })
-   </script>
+    </script>
 </body>
 
 </html>

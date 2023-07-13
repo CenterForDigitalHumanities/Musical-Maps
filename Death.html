@@ -98,23 +98,23 @@
                     })
                 }).then(response => response.json())
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev.body.presentAt.value["@type"] === "Death")
+                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "Death")
                         if (eventMatch.length > 0) {
                             alert("Existing event found.")
                             DOD.setAttribute("deer-id", eventMatch.pop()?.['@id'])
                         }
                     })
             })()
-            document.addEventListener('deer-created', ev => {
+        document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
             const date = { value: document.querySelector('[deer-key="date"]').value }
             const location = { value: document.querySelector('[deer-key="location"]').value }
             const creator = document.querySelector('[deer-key="creator"]').value
             const presentAt = {
                 value: {
-                    "@context":"http://schema.org",
+                    "@context": "http://schema.org",
                     "@id": newEvent['@id'],
-                    "@type":newEvent['@type'],
+                    "@type": newEvent['@type'],
                     name: document.querySelector('[deer-key="name"]').value,
                     date,
                     location
@@ -123,23 +123,23 @@
             const deathDate = date
             const deathPlace = location
 
-            ;[{presentAt},{deathDate},{deathPlace}].forEach(prop=>{
-                const propName = Object.keys(prop).pop()
-                const anno = {
-                    type: "Annotation",
-                    '@context' : "http://www.w3.org/ns/anno.jsonld",
-                    creator,
-                    target: window.hashCache,
-                    body: prop
-                }
-                fetch("https://tinydev.rerum.io/app/create", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    },
-                    body: JSON.stringify(anno)
-                }).catch(err=>alert(err.message ?? err))
-            })
+                ;[{ presentAt }, { deathDate }, { deathPlace }].forEach(prop => {
+                    const propName = Object.keys(prop).pop()
+                    const anno = {
+                        type: "Annotation",
+                        '@context': "http://www.w3.org/ns/anno.jsonld",
+                        creator,
+                        target: window.hashCache,
+                        body: prop
+                    }
+                    fetch("https://tinydev.rerum.io/app/create", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        body: JSON.stringify(anno)
+                    }).catch(err => alert(err.message ?? err))
+                })
         })
     </script>
 </body>
