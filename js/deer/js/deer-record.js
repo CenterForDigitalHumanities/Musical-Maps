@@ -228,6 +228,7 @@ export default class DeerReport {
             UTILS.warning(event.target.id + " form submitted unchanged.")
         }
         let record = {
+            sandbox: "MusicalMaps",
             "@type": this.type
         }
         if (this.context) { record["@context"] = this.context }
@@ -279,6 +280,7 @@ export default class DeerReport {
                     let evidence = input.getAttribute(DEER.EVIDENCE) || this.evidence
                     let action = (inputId) ? "UPDATE" : "CREATE"
                     let annotation = {
+                        sandbox: "MusicalMaps",
                         type: "Annotation",
                         target: entity["@id"],
                         body: {}
