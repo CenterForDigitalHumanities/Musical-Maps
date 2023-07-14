@@ -62,22 +62,12 @@
                 </div>
                 <div class="form-group col-md-6">
                     <label for="description">Description</label>
-                    <textarea name="description" id="description" class="form-control" deer-key="description" placeholder="short notes or description of the event"></textarea>
+                    <textarea name="description" id="description" class="form-control" deer-key="description"
+                        placeholder="short notes or description of the event"></textarea>
                 </div>
             </div>
 
             <button type="submit" class="btn btn-primary">Create Performance 🎼</button>
-        </form>
-
-        <form deer-type="Person" hash-id id="person">
-            <input deer-key="creator" value="mm-prototype" type="hidden">
-            <div class="row">
-                <div class="form-group col">
-                    <label for="presentAt">Present At</label>
-                    <input type="text" class="form-control" deer-key="presentAt" name="presentAt">
-                </div>
-            </div>
-            <button type="submit" id="personSubmit" class="btn btn-primary">Update Person</button>
         </form>
     </div>
     <script>
@@ -117,22 +107,46 @@
                         'body.presentAt': { $exists: true }
                     })
                 }).then(response => response.json())
-                .then(eventIds => Promise.all(eventIds.map(uri=>fetch(uri.body.presentAt.value).then(response => response.json()))))
                     .then(events => {
-                        const eventMatch = events.filter(ev=>ev["@type"] === "MusicEvent")
+                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "MusicEvent")
                         if (eventMatch.length > 0) {
-                            performances.innerHTML = eventMatch.reduce((a,b)=>a+=`<li deer-id="${b['@id']}">${b.name?.value ?? b.name}</li>`,``)
+                            performances.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b.body.presentAt.value['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
                         }
                     })
             })()
-        document.addEventListener('deer-updated', ev => {
-            // fire only when new event is created
+        document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
-            if (newEvent.target?.id !== "DOD") { return } // not the right form
-            person.querySelector('[name="presentAt"]').setAttribute('value', newEvent['@id'])
-            person.querySelector('[name="deathDate"]').setAttribute('value', document.querySelector('[name="date"]'))
-            person.querySelector('[name="deathPlace"]').setAttribute('value', geoNameInput.value)
-            personSubmit.click()
+            const date = { value: document.querySelector('[deer-key="date"]').value }
+            const location = { value: document.querySelector('[deer-key="location"]').value }
+            const creator = document.querySelector('[deer-key="creator"]').value
+            const presentAt = {
+                value: {
+                    "@context": "http://schema.org",
+                    "@id": newEvent['@id'],
+                    "@type": newEvent['@type'],
+                    name: document.querySelector('[deer-key="name"]').value,
+                    date,
+                    location
+                }
+            }
+
+                ;[{ presentAt }].forEach(prop => {
+                    const anno = {
+                        sandbox: "MusicalMaps",
+                        type: "Annotation",
+                        '@context': "http://www.w3.org/ns/anno.jsonld",
+                        creator,
+                        target: window.hashCache,
+                        body: prop
+                    }
+                    fetch("https://tinydev.rerum.io/app/create", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        body: JSON.stringify(anno)
+                    }).catch(err => alert(err.message ?? err))
+                })
         })
     </script>
 </body>

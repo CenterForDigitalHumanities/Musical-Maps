@@ -42,32 +42,44 @@ async function renderChange(mutationsList) {
 async function getObject(findId) {
 
     let obj = fetch(findId).then(res => res.json())
-    let annos = findByTargetId(findId,[],DEER.URLS.QUERY)
+    let annos = findByTargetId(findId, [], DEER.URLS.QUERY)
     await Promise.all([obj, annos]).then(res => {
         annos = res[1]
         obj = res[0]
     })
-    annos.forEach(anno=>obj = applyAssertions(obj,anno.body))
+    annos.forEach(anno => obj = applyAssertions(obj, anno))
 
     return obj
 
-    function applyAssertions(assertOn, annotationBody) {
-        if (Array.isArray(annotationBody)) { return annotationBody.forEach(a=>applyAssertions(assertOn,a)) }
-    
+    function applyAssertions(assertOn, anno) {
+        const annotationBody = anno.body
+        if (Array.isArray(annotationBody)) { return annotationBody.forEach(a => applyAssertions(assertOn, a)) }
+
         const assertions = {}
         Object.entries(annotationBody).forEach(([k, v]) => {
             const assertedValue = UTILS.getValue(v)
-            if ( [undefined,null,"",[],assertOn[k]].flat().includes(assertedValue) ) { return }
-            if (assertOn.hasOwnProperty(k) && ![undefined,null,"",[]].includes(assertOn[k]) ) {
-                Array.isArray(assertions[k]) ? assertions[k].push(assertedValue).flat() : assertions[k] = [assertOn[k],assertedValue].flat()
+            if ([undefined, null, "", [], assertOn[k]].flat().includes(assertedValue)) { return }
+            if (assertOn.hasOwnProperty(k) && ![undefined, null, "", []].includes(assertOn[k])) {
+                Array.isArray(assertions[k]) ? assertions[k].push(assertedValue).flat() : assertions[k] = [assertOn[k], assertedValue].flat()
             } else {
                 assertions[k] = assertedValue
             }
         })
-    
+        
+        const annotationWithSource = a => ({
+            value: a,
+            source: {
+                citationSource: anno['@id'] || anno.id || "",
+                citationNote: "Primitive object from DEER",
+                comment: "Learn about the assembler for this object at https://github.com/CenterForDigitalHumanities/deer"
+            }
+        })
+        
         // Simplify any arrays of length 1, which may not be a good idea.
-        Object.entries(assertions).forEach(([k, v]) => { if (Array.isArray(v) && v.length === 1) { v = v[0] } })
-    
+        Object.entries(assertions).forEach(([k, v]) => { 
+            if (Array.isArray(v) && v.length === 1) { assertions[k] = v[0] } 
+            assertions[k] = annotationWithSource(assertions[k])
+        })
         return Object.assign(assertOn, assertions)
     }
 
@@ -85,7 +97,7 @@ async function getObject(findId) {
                 obj["$or"].push(o)
             }
         }
-        return fetch(queryUrl+"?limit=100&skip=0", {
+        return fetch(queryUrl + "?limit=100&skip=0", {
             method: "POST",
             body: JSON.stringify(obj),
             headers: {
@@ -136,8 +148,8 @@ export default class DeerReport {
                 id: this.id
             })
             const submitBtn = this.elem.querySelector('button[type="submit"]')
-            if(submitBtn){
-                submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
+            if (submitBtn) {
+                submitBtn.textContent = submitBtn?.textContent.replace('Create', 'Update')
             }
             UTILS.worker.addEventListener("message", event => {
                 this.fillValues(new Map(Object.entries(event.data.payload)))
@@ -158,7 +170,7 @@ export default class DeerReport {
 
     fillValues(valueMap) {
 
-        if(valueMap.get('@id')){
+        if (valueMap.get('@id')) {
             this.id = valueMap.get('@id') ?? valueMap.get('id')
         }
         try {
@@ -183,8 +195,8 @@ export default class DeerReport {
         }, 0)
         this.elem.click()
         const submitBtn = this.elem.querySelector('button[type="submit"]')
-        if(submitBtn){
-            submitBtn.textContent = submitBtn?.textContent.replace('Create','Update')
+        if (submitBtn) {
+            submitBtn.textContent = submitBtn?.textContent.replace('Create', 'Update')
         }
     }
 
@@ -200,6 +212,7 @@ export default class DeerReport {
             UTILS.warning(event.target.id + " form submitted unchanged.")
         }
         let record = {
+            sandbox: "MusicalMaps",
             "@type": this.type
         }
         if (this.context) { record["@context"] = this.context }
@@ -229,7 +242,7 @@ export default class DeerReport {
                     return data.new_obj_state
                 })
                 .catch(err => { })
-        }
+}
 
         formAction.then((function (entity) {
             let annotations = Array.from(this.elem.querySelectorAll(DEER.INPUTS.map(s => s + "[" + DEER.KEY + "]").join(","))).filter(el => Boolean(el.$isDirty))
@@ -251,6 +264,7 @@ export default class DeerReport {
                     let evidence = input.getAttribute(DEER.EVIDENCE) || this.evidence
                     let action = (inputId) ? "UPDATE" : "CREATE"
                     let annotation = {
+                        sandbox: "MusicalMaps",
                         type: "Annotation",
                         target: entity["@id"],
                         body: {}
@@ -424,8 +438,7 @@ export default class DeerReport {
             .then(obj => { return obj.new_obj_state })
     }
 }
-
-export function initializeDeerForms(config) {
+    export function initializeDeerForms(config) {
     const forms = document.querySelectorAll(config.FORM)
     Array.from(forms).forEach(elem => new DeerReport(elem, config))
     document.addEventListener(DEER.EVENTS.NEW_FORM, e => Array.from(e.detail.set).forEach(elem => new DeerReport(elem, config)))

@@ -306,7 +306,6 @@ const utils = {
                         //We found it and understand it, but we preference annotation objects so look at the rest of the entries.
                         //Consequently, if no annotations are found, the last string/number entry will be the one DEER uses.
                         mapsToAnno = false
-                        elem.setAttribute(DEER.SOURCE, this.getValue(entry.source, "citationSource"))
                         assertedValue = arbitraryAssertedValue = this.getValue(entry)
                     } else if (typeof entry === "object") {
                         if (entry.hasOwnProperty(deerKeyValue) && entry[deerKeyValue].hasOwnProperty("source")) {
