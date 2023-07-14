@@ -45,12 +45,6 @@ class MmHeader extends HTMLElement {
         <li class="nav-item">
             <a class="nav-link bg-light" href="people.html">People</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link bg-light" href="places.html">Places</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link bg-light" href="things.html">Things</a>
-        </li>
     </ul>
     </header>
 `
