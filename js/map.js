@@ -324,9 +324,10 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
         let sortableEvents = entityEvents.flatMap(item=>{
             if(item.startDate) {
                 item.date = item.startDate
+                item.name += " (start)"
             }
             if(item.endDate) {
-                return [ item, Object.assign({...item}, {date:item.endDate})  ]
+                return [ item, Object.assign({...item}, {date:item.endDate, name: item.name.replace(' (start)',' (end)')})  ]
             }
             return item
         })
