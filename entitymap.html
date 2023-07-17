@@ -22,20 +22,21 @@
 
 <body is="mm-content">
     <div class="container" slot="content">
-        <div id="viewerBody" class="is-hidden">
-            <p> 
-                Clicking any point on the map will show applicable information about the entity that point represents.  
-                These locations come from Events.  A path is included to connect the points in chronological order.
-                Pan and zoom are supported.
-            </p>
-
-            <p> 
-                You are viewing locations from events associated with <deer-view deer-lazy="true" deer-template="label" id="dataLabel" class="text-bold text-dots"> loading... </deer-view>
-            </p>
-
-            <div id="leafletInstanceContainer">
+        <p> 
+            Clicking any point on the map will show applicable information about the entity that point represents.  
+            These locations come from Events.  A path is included to connect the points in chronological order.
+            Pan and zoom are supported.
+        </p>
+        <p> 
+            You are viewing locations from events associated with <deer-view deer-lazy="true" deer-template="label" id="dataLabel" class="text-bold text-dots"> loading... </deer-view>
+        </p>
+        <div id="viewerBody" class="is-hidden row">
+            <div class="col-9" id="leafletInstanceContainer">
                 <div id="loadingMessage" style="text-align: center;">Gathering Musical Data From Around The World...</div>
             </div>
+            <ul class="col-3" id="eventSidebar"> 
+                <span>Select an Event</span>
+            </ul>
         </div>
         <div id="needs">
             <p class="howTo"> 

@@ -80,6 +80,7 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
     // On each piece of expandedEntities, each array item in geoProps are the only properties that will contain a referenced or embedded GeoJSON object.
     // Each piece of expandedEntities is a resolved and expanded Entity as JSON.  It will not contain child properties to recurse on.
     for await (const data of expandedEntities){
+        const uri = data["@id"] ?? data.id ?? ""
         const t1 = data.type ?? data["@type"] ?? ""
         const entityLabel = data.name ?? data.label ?? data.title ?? "No Entity Label"
         MAPVIEWER.resourceCount += 1
@@ -158,7 +159,6 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
             }
             const featureType = geo.type ?? geo["@type"] ?? ""
             let data_uri = geo.id ?? geo["@id"] ?? ""
-            let data_resolved
             if(featureType === "FeatureCollection"){
                 if (!geo.hasOwnProperty("features")) {
                     //It is either referenced or malformed
@@ -180,6 +180,7 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                             MAPVIEWER.resourceMap.set(resolved_uri, geo)
                         }  
                         geo.__fromResource = t1
+                        geo.__resourceURI = uri
                         allPropertyInstances.push(geo)
                     }
                 }
@@ -199,16 +200,17 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
 
                     if (geo.hasOwnProperty("geometry")) {
                         //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                        MAPVIEWER.resourceMap.set(data_uri, data_resolved)
-                        resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
+                        MAPVIEWER.resourceMap.set(data_uri, geo)
+                        resolved_uri = geo["@id"] ?? geo.id ?? ""
                         if(data_uri !== resolved_uri){
                             //Then the id handed back a different object.  This is not good, somebody messed up their data
-                            MAPVIEWER.resourceMap.set(resolved_uri, data_resolved)
+                            MAPVIEWER.resourceMap.set(resolved_uri, geo)
                         }  
                     }
                 }
                 if(!geo.properties) geo.properties = {}
                 geo.properties.__fromResource = t1
+                geo.properties.__resourceURI = uri
                 allPropertyInstances.push(geo)
             }
         }
@@ -320,6 +322,7 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
             console.warn(err)
             return []
         })
+        
         // duplicate and modify range events
         let sortableEvents = entityEvents.flatMap(item=>{
             if(item.startDate) {
@@ -338,6 +341,7 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
             const geo = await MAPVIEWER.findAllFeatures(event, MAPVIEWER.possibleGeoProperties)
+            MAPVIEWER.mintSidebarEntry(event, geo)
             geoJSONFeatures = geoJSONFeatures.concat(geo)   
         }
         geoJSONFeatures = geoJSONFeatures.reduce((prev, curr) => {
@@ -348,6 +352,7 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
                 if(curr.__fromResource){
                     curr.features.forEach(f => {
                         f.properties.__fromResource = curr.__fromResource ?? ""
+                        f.properties.__resourceURI = curr.__resourceURI ?? ""
                     })    
                 }
                 return prev.concat(curr.features)
@@ -362,7 +367,8 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
                 "coordinates" : []
             },
             "properties" : {
-                "__fromResource" : MAPVIEWER.resource.type ?? MAPVIEWER.resource["@type"] ?? ""
+                "__fromResource" : MAPVIEWER.resource.type ?? MAPVIEWER.resource["@type"] ?? "",
+                "__resourceURI" : MAPVIEWER.resource["@id"] ?? MAPVIEWER.resource.id ?? ""
             }
         }
         geoJSONFeatures.forEach(f => {
@@ -472,6 +478,8 @@ MAPVIEWER.initializeLeaflet = async function(coords, geoMarkers) {
     L.geoJSON(geoMarkers, {
             pointToLayer: function(feature, latlng) {
                 let __fromResource = feature.properties.__fromResource ?? ""
+                const __resourceURI = feature.properties.__resourceURI ?? ""
+                const id = "mmpoint _"+__resourceURI.split("/").pop()
                 appColor = "purple"
                 // switch (__fromResource) {
                 //     case "Person":
@@ -495,10 +503,14 @@ MAPVIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                     color: appColor,
                     weight: 1,
                     opacity: 1,
-                    fillOpacity: 1                })
+                    fillOpacity: 1,
+                    className : id
+                })
             },
             style: function(feature) {
                 let __fromResource = feature.properties.__fromResource ?? ""
+                const __resourceURI = feature.properties.__resourceURI ?? ""
+                const id = "mmline _"+__resourceURI.split("/").pop()
                 appColor = "purple"
                 // switch (__fromResource) {
                 //     case "Person":
@@ -523,7 +535,8 @@ MAPVIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                         fillColor: appColor,
                         opacity: 0.25,
                         fillOpacity: 0.25,
-                        interactive: false
+                        interactive: false,
+                        className : id
                     }
                     if(ft === "LineString"){
                         // Make these dashed to imply 'travel'
@@ -594,6 +607,66 @@ MAPVIEWER.httpsIdArray = function (id,justArray) {
     if (!id.startsWith("http")) return justArray ? [ id ] : id
     if (id.startsWith("https://")) return justArray ? [ id, id.replace('https','http') ] : { $in: [ id, id.replace('https','http') ] }
     return justArray ? [ id, id.replace('http','https') ] : { $in: [ id, id.replace('http','https') ] }
+}
+
+MAPVIEWER.mintSidebarEntry = function(mmEvent, geo){
+    const uri = mmEvent["@id"] ?? mmEvent.id ?? ""
+    const id = uri.split("/").pop()
+    
+    const startDate = mmEvent.startDate ?? false
+    const endDate = mmEvent.endDate ?? false
+    const date = mmEvent.date ?? false
+    const label = mmEvent.name ?? mmEvent.label ?? mmEvent.title ?? "No Entity Label"
+    let entry = document.createElement("li")
+    entry.setAttribute("mmEvent", uri)
+    entry.innerText = label
+    entry.addEventListener("mouseover", (e) => {
+        if(e.target.hasAttribute("selected")) return
+        document.querySelectorAll(`path.mmpoint._${id}`).forEach(p => {
+            p.setAttribute("fill", "#fa0557")
+        })
+    })
+    entry.addEventListener("mouseout", (e) => {
+        if(e.target.hasAttribute("selected")) return
+        document.querySelectorAll(`path.mmpoint._${id}`).forEach(p => {
+            p.setAttribute("fill", "purple")
+        })
+    })
+    entry.addEventListener("click", (e) => {
+        if (e.target.hasAttribute("selected")){
+            e.target.removeAttribute("selected")    
+            document.querySelectorAll("path.mmpoint").forEach(function(p) {
+                p.setAttribute("stroke-width", "1")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "purple")
+                p.setAttribute("fill", "purple")
+            })  
+        }
+        else{
+            e.target.closest("ul").querySelector("li[selected]")?.removeAttribute("selected")
+            e.target.setAttribute("selected", "")
+            document.querySelectorAll("path.mmpoint").forEach(function(p) {
+                p.setAttribute("stroke-width", "1")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "purple")
+                p.setAttribute("fill", "purple")
+            })
+            document.querySelectorAll(`path.mmpoint._${id}`).forEach(function(p) {
+                p.setAttribute("stroke-width", "2")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "#ff8200")
+                p.setAttribute("fill", "yellow")
+            })
+            if(Array.isArray(geo)){
+                // Weird, I think we expected this to be a single Feature
+                geo = geo[0]
+            }
+            if(geo.geometry.type === "Point"){
+                MAPVIEWER.mymap.flyTo([geo.geometry.coordinates[1], geo.geometry.coordinates[0]], 10)    
+            }
+        }
+    })
+    eventSidebar.appendChild(entry)
 }
 
 MAPVIEWER.init()

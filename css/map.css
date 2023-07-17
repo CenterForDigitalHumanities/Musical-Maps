@@ -110,6 +110,25 @@
     display: none;
 }
 
+#eventSidebar{
+    padding-left: 2em;
+    max-height: 35em;
+    overflow-y: auto;
+}
+
+#eventSidebar li{
+    cursor: pointer;
+}
+
+#eventSidebar li:hover{
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+#eventSidebar li[selected]{
+    text-decoration: underline;
+    background-color: yellow;
+}
+
 /* A weakness is the sidewise mobile phone, that map needs to be short! */
 /*
 @media only screen and (max-width: 770px) {
