@@ -102,11 +102,11 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                 // This could be a URI.  Attempt to resolve it
                 if(geo.indexOf("www.geonames.org")){
                     // Note it is likely a geonames URI like https://www.geonames.org/2761369/vienna.html
-                    // Needs turned into http://api.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
+                    // Needs turned into https://secure.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
                     const segments = geo.split("/")
                     const num = segments[segments.length-2]
                     const orig = geo
-                    const geoNamesUri = `http://api.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
+                    const geoNamesUri = `https://secure.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
                     geo = await fetch(geoNamesUri, {"cache":"default"})
                     .then(resp => resp.json())
                     .then(geoNamesJson => {
