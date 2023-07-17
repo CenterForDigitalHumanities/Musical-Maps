@@ -159,7 +159,6 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
             }
             const featureType = geo.type ?? geo["@type"] ?? ""
             let data_uri = geo.id ?? geo["@id"] ?? ""
-            let data_resolved
             if(featureType === "FeatureCollection"){
                 if (!geo.hasOwnProperty("features")) {
                     //It is either referenced or malformed
@@ -201,11 +200,11 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
 
                     if (geo.hasOwnProperty("geometry")) {
                         //Then this it is dereferenced and we want it moving forward.  Otherwise, it is ignored as unusable.
-                        MAPVIEWER.resourceMap.set(data_uri, data_resolved)
-                        resolved_uri = data_resolved["@id"] ?? data_resolved.id ?? ""
+                        MAPVIEWER.resourceMap.set(data_uri, geo)
+                        resolved_uri = geo["@id"] ?? geo.id ?? ""
                         if(data_uri !== resolved_uri){
                             //Then the id handed back a different object.  This is not good, somebody messed up their data
-                            MAPVIEWER.resourceMap.set(resolved_uri, data_resolved)
+                            MAPVIEWER.resourceMap.set(resolved_uri, geo)
                         }  
                     }
                 }
@@ -336,12 +335,12 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
         })
 
         // Sort the events by date
-        entityEvents = sortableEvents.toSorted(function(a,b){return new Date(a.date) - new Date(b.date)})
+        entityEvents = sortableEvents.toSorted(function(a,b){return new Date(a.date.value ?? a.date) - new Date(b.date.value ?? b.date)})
 
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
             const geo = await MAPVIEWER.findAllFeatures(event, MAPVIEWER.possibleGeoProperties)
-            MAPVIEWER.mintSidebarEntry(event)
+            MAPVIEWER.mintSidebarEntry(event, geo)
             geoJSONFeatures = geoJSONFeatures.concat(geo)   
         }
         geoJSONFeatures = geoJSONFeatures.reduce((prev, curr) => {
@@ -609,10 +608,10 @@ MAPVIEWER.httpsIdArray = function (id,justArray) {
     return justArray ? [ id, id.replace('http','https') ] : { $in: [ id, id.replace('http','https') ] }
 }
 
-MAPVIEWER.mintSidebarEntry = function(mmEvent){
+MAPVIEWER.mintSidebarEntry = function(mmEvent, geo){
     const uri = mmEvent["@id"] ?? mmEvent.id ?? ""
     const id = uri.split("/").pop()
-    const geoPoint = MAPVIEWER.resourceMap.get(mmEvent.location)
+    
     const startDate = mmEvent.startDate ?? false
     const endDate = mmEvent.endDate ?? false
     const date = mmEvent.date ?? false
@@ -657,7 +656,13 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
                 p.setAttribute("stroke", "#ff8200")
                 p.setAttribute("fill", "yellow")
             })
-            MAPVIEWER.mymap.flyTo([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 15)
+            if(Array.isArray(geo)){
+                // Weird, I think we expected this to be a single Feature
+                geo = geo[0]
+            }
+            if(geo.geometry.type === "Point"){
+                MAPVIEWER.mymap.flyTo([geo.geometry.coordinates[1], geo.geometry.coordinates[0]], 8)    
+            }
         }
     })
     eventSidebar.appendChild(entry)
