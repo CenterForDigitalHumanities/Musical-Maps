@@ -220,7 +220,8 @@ export default class DeerReport {
             try {
                 record[p] = this.elem.querySelector("[" + DEER.KEY + "='" + p + "']").value
             } catch (err) {
-                UTILS.warning(err, null)
+                // UTILS.warning(err, null)
+                // Plenty of misses with what we are calling primitives.
             }
         }
         let formAction
@@ -348,7 +349,7 @@ export default class DeerReport {
         }).bind(this))
             .then(entity => {
                 this.elem.setAttribute(DEER.ID, entity["@id"])
-                this.fillValues(this.inputs, new Map(Object.entries(entity)))
+                this.fillValues(new Map(Object.entries(entity)))
             }).catch(err=>console.warn(err))
     }
 

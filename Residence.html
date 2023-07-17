@@ -9,7 +9,7 @@
     <script src="js/main.js" type="module"></script>
     <script src="js/deer/js/deer.js" type="module"></script>
     <script src="js/layout.js"></script>
-    <title>Death Event - Musical Maps of the World</title>
+    <title>Residence - Musical Maps of the World</title>
 </head>
 
 <body is="mm-content">
@@ -18,7 +18,7 @@
         <deer-a class="btn btn-secondary" deer-link="person.html#" hash-id>Profile </deer-a>
 
         <h3>
-            Describe the Death event
+            Describe the Residence event
         </h3>
         <p>
             Use this form to add a new event to the musical maps.
@@ -30,7 +30,12 @@
             NB: As a sandbox prototype, all annotations will be created with
             the same authentication and is subject to revision.
         </p>
-        <form deer-type="Death" deer-context="http://schema.org" id="DOD">
+        <h4>Residences</h4>
+        <small class="text-muted">Click an existing residence below to see the details or edit.</small>
+        <ol id="residences">
+            <li>No records yet. Enter a new Event below.</li>
+        </ol>
+        <form deer-type="mm:ResideEvent" deer-context="http://schema.org" id="DOD" deer-listening="residences">
             <input deer-key="creator" value="mm-prototype" type="hidden">
 
             <div class="row">
@@ -50,14 +55,24 @@
             </div>
 
             <div class="row">
-                <div class="form-group col-md-6">
-                    <label for="date">Exact date</label>
-                    <input type="date" class="form-control" deer-key="date" name="date" min="1700-01-01"
+                <div class="form-group col-md-3">
+                    <label for="startDate">Start date</label>
+                    <input type="date" class="form-control" deer-key="startDate" name="startDate" min="1700-01-01"
                         max="2050-12-31" required>
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="endDate">End date</label>
+                    <input type="date" class="form-control" deer-key="endDate" name="endDate" min="1700-01-01"
+                        max="2050-12-31" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="description">Description</label>
+                    <textarea name="description" id="description" class="form-control" deer-key="description"
+                        placeholder="short notes or description of the event"></textarea>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Create Death</button>
+            <button type="submit" class="btn btn-primary">Create Residence 🏨</button>
         </form>
     </div>
     <script>
@@ -87,7 +102,7 @@
                     if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
                     const nameInput = document.querySelector('[name="name"]')
                     if (!nameInput || nameInput?.value?.length > 2) { return }
-                    nameInput.setAttribute('value', `Death of ${person.name || "ERR!"}`)
+                    nameInput.setAttribute('value', `${person.name || "ERR!"} lived here`)
                 })
                 fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
                     method: "POST",
@@ -99,16 +114,16 @@
                     })
                 }).then(response => response.json())
                     .then(events => {
-                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "Death")
+                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "mm:ResideEvent")
                         if (eventMatch.length > 0) {
-                            alert("Existing event found.")
-                            DOD.setAttribute("deer-id", eventMatch.pop()?.body.presentAt.value['@id'])
+                            residences.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b.body.presentAt.value['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
                         }
                     })
             })()
         document.addEventListener('deer-created', ev => {
             const newEvent = ev.detail
-            const date = { value: document.querySelector('[deer-key="date"]').value }
+            const startDate = { value: document.querySelector('[deer-key="startDate"]').value }
+            const endDate = { value: document.querySelector('[deer-key="endDate"]').value }
             const location = { value: document.querySelector('[deer-key="location"]').value }
             const creator = document.querySelector('[deer-key="creator"]').value
             const presentAt = {
@@ -117,14 +132,13 @@
                     "@id": newEvent['@id'],
                     "@type": newEvent['@type'],
                     name: document.querySelector('[deer-key="name"]').value,
-                    date,
+                    startDate,
+                    endDate,
                     location
                 }
             }
-            const deathDate = date
-            const deathPlace = location
 
-                ;[{ presentAt }, { deathDate }, { deathPlace }].forEach(prop => {
+                ;[{ presentAt }].forEach(prop => {
                     const anno = {
                         sandbox: "MusicalMaps",
                         type: "Annotation",
