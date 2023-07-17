@@ -610,15 +610,17 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
     entry.setAttribute("mmEvent", uri)
     entry.innerText = label
     entry.addEventListener("click", (e) => {
-        let animate = document.querySelector(`path.mmpoint._${id}`)
-        if(animate.getAttribute("stroke-width") === "15"){
-            animate.setAttribute("stroke-width", "1")    
-            return
-        }
-        document.querySelectorAll("path.mmpoint").forEach(p => {
-            p.setAttribute("stroke-width", 1)
-        })
-        document.querySelector(`path.mmpoint._${id}`).setAttribute("stroke-width", "15")
+        // The following can be used to alter the shape corresponding to the event ID.  Use it for animation is desired.
+        // let animate = document.querySelector(`path.mmpoint._${id}`)
+        // if(animate.getAttribute("stroke-width") === "15"){
+        //     animate.setAttribute("stroke-width", "1")    
+        //     return
+        // }
+        // document.querySelectorAll("path.mmpoint").forEach(p => {
+        //     p.setAttribute("stroke-width", 1)
+        // })
+        // document.querySelector(`path.mmpoint._${id}`).setAttribute("stroke-width", "15")
+        MAPVIEWER.mymap.setView([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 8)
     })
     eventSidebar.appendChild(entry)
 }
