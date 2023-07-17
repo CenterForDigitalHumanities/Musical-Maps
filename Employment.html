@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" type="module"></script>
+    <script src="js/deer/js/deer.js" type="module"></script>
+    <script src="js/layout.js"></script>
+    <title>Employment - Musical Maps of the World</title>
+</head>
+
+<body is="mm-content">
+    <div class="container" slot="content">
+
+        <deer-a class="btn btn-secondary" deer-link="person.html#" hash-id>Profile </deer-a>
+
+        <h3>
+            Describe the Residence event (employment)
+        </h3>
+        <p>
+            Use this form to add a new event to the musical maps.
+            A proper event has an impact on a person or location within
+            this project and has both a time and place. Evidence for these
+            assertions should be included with every entry.
+        </p>
+        <p class="text-info">
+            NB: As a sandbox prototype, all annotations will be created with
+            the same authentication and is subject to revision.
+        </p>
+        <h4>Schools</h4>
+        <small class="text-muted">Click an existing residence below to see the details or edit.</small>
+        <ol id="employment">
+            <li>No records yet. Enter a new Event below.</li>
+        </ol>
+        <form deer-type="mm:SchoolAttendanceEvent" deer-context="http://schema.org" id="DOD" deer-listening="employment">
+            <input deer-key="creator" value="mm-prototype" type="hidden">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="name">Name</label>
+                    <input type="text" name="name" deer-key="name" class="form-control"
+                        placeholder="Enter a label for this Event">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="location">Event location</label>
+                    <input id="geoNameInput" type="url" class="form-control" deer-key="location" name="location"
+                        required>
+                    <a id="geoNameLink" target="_blank" title="Open search in a new tab">Search GeoNames</a>
+                    <small class="form-text text-muted">GeoNames URI:
+                        "https://www.geonames.org/#######/CITY.html"</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group col-md-3">
+                    <label for="startDate">Start date</label>
+                    <input type="date" class="form-control" deer-key="startDate" name="startDate" min="1700-01-01"
+                        max="2050-12-31" required>
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="endDate">End date</label>
+                    <input type="date" class="form-control" deer-key="endDate" name="endDate" min="1700-01-01"
+                        max="2050-12-31" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="description">Description</label>
+                    <textarea name="description" id="description" class="form-control" deer-key="description"
+                        placeholder="short notes or description of the event"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Employment 🏢</button>
+        </form>
+    </div>
+    <script>
+        // https://www.geonames.org/search.html?q=CITY&country=COUNTRY
+        geoNameInput.addEventListener('input', ev => {
+            const queryLocation = ev.target.value?.split(',')
+            const city = queryLocation[0].trim()
+            if (city.includes("geonames.org")) {
+                geoNameLink.classList.remove('btn', 'btn-secondary')
+                geoNameLink.classList.add('hidden')
+                return
+            }
+            const country = queryLocation?.[1] ? `&country=${queryLocation?.[1]?.trim()}` : ``
+            const query = `https://www.geonames.org/search.html?q=${city}${country}`
+            geoNameLink.setAttribute("href", query)
+            geoNameLink.textContent = `Search for ${city}`
+            geoNameLink.classList.add('btn', 'btn-secondary')
+            geoNameLink.classList.remove('hidden')
+        })
+            ; (() => {
+                let hash = location.hash?.substring(1)
+                if (!hash) { return }
+                const rerumPrefix = "https://devstore.rerum.io/v1/id/"
+                if (hash.length === 24) { hash = `${rerumPrefix}${hash}` }
+                window.hashCache = hash
+                fetch(hash).then(res => res.json()).then(person => {
+                    if (person['@type'] !== "Person") { alert("This Event expects a Person but got a " + person['@type']) }
+                    const nameInput = document.querySelector('[name="name"]')
+                    if (!nameInput || nameInput?.value?.length > 2) { return }
+                    nameInput.setAttribute('value', `${person.name || "ERR!"} lived here`)
+                })
+                fetch("https://tinydev.rerum.io/query/?limit=50&skip=0", {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        target: hash,
+                        'body.presentAt': { $exists: true }
+                    })
+                }).then(response => response.json())
+                    .then(events => {
+                        const eventMatch = events.filter(ev => ev.body.presentAt.value["@type"] === "mm:EmploymentEvent")
+                        if (eventMatch.length > 0) {
+                            employment.innerHTML = eventMatch.reduce((a, b) => a += `<li deer-id="${b.body.presentAt.value['@id']}">${b.body.presentAt.value.name?.value ?? b.body.presentAt.value.name}</li>`, ``)
+                        }
+                    })
+            })()
+        document.addEventListener('deer-created', ev => {
+            const newEvent = ev.detail
+            const startDate = { value: document.querySelector('[deer-key="startDate"]').value }
+            const endDate = { value: document.querySelector('[deer-key="endDate"]').value }
+            const location = { value: document.querySelector('[deer-key="location"]').value }
+            const creator = document.querySelector('[deer-key="creator"]').value
+            const presentAt = {
+                value: {
+                    "@context": "http://schema.org",
+                    "@id": newEvent['@id'],
+                    "@type": newEvent['@type'],
+                    name: document.querySelector('[deer-key="name"]').value,
+                    startDate,
+                    endDate,
+                    location
+                }
+            }
+
+                ;[{ presentAt }].forEach(prop => {
+                    const anno = {
+                        sandbox: "MusicalMaps",
+                        type: "Annotation",
+                        '@context': "http://www.w3.org/ns/anno.jsonld",
+                        creator,
+                        target: window.hashCache,
+                        body: prop
+                    }
+                    fetch("https://tinydev.rerum.io/app/create", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        body: JSON.stringify(anno)
+                    }).catch(err => alert(err.message ?? err))
+                })
+        })
+    </script>
+</body>
+
+</html>
