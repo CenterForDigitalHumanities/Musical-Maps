@@ -615,6 +615,9 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
             animate.setAttribute("stroke-width", "1")    
             return
         }
+        document.querySelectorAll("path.mmpoint").forEach(p => {
+            p.setAttribute("stroke-width", 1)
+        })
         document.querySelector(`path.mmpoint._${id}`).setAttribute("stroke-width", "15")
     })
     eventSidebar.appendChild(entry)
