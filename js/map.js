@@ -608,18 +608,45 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
     let entry = document.createElement("li")
     entry.setAttribute("mmEvent", uri)
     entry.innerText = label
+    entry.addEventListener("mouseover", (e) => {
+        if(e.target.hasAttribute("selected")) return
+        document.querySelectorAll(`path.mmpoint._${id}`).forEach(p => {
+            p.setAttribute("fill", "#fa0557")
+        })
+    })
+    entry.addEventListener("mouseout", (e) => {
+        if(e.target.hasAttribute("selected")) return
+        document.querySelectorAll(`path.mmpoint._${id}`).forEach(p => {
+            p.setAttribute("fill", "purple")
+        })
+    })
     entry.addEventListener("click", (e) => {
-        // The following can be used to alter the shape corresponding to the event ID.  See https://leafletjs.com/reference.html#path for options.
-        // let animate = document.querySelector(`path.mmpoint._${id}`)
-        // if(animate.getAttribute("stroke-width") === "15"){
-        //     animate.setAttribute("stroke-width", "1")    
-        //     return
-        // }
-        // document.querySelectorAll("path.mmpoint").forEach(p => {
-        //     p.setAttribute("stroke-width", 1)
-        // })
-        // document.querySelector(`path.mmpoint._${id}`).setAttribute("stroke-width", "15")
-        MAPVIEWER.mymap.setView([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 8)
+        if (e.target.hasAttribute("selected")){
+            e.target.removeAttribute("selected")    
+            document.querySelectorAll("path.mmpoint").forEach(function(p) {
+                p.setAttribute("stroke-width", "1")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "purple")
+                p.setAttribute("fill", "purple")
+            })  
+        }
+        else{
+            e.target.closest("ul").querySelector("li[selected]")?.removeAttribute("selected")
+            e.target.setAttribute("selected", "")
+            document.querySelectorAll("path.mmpoint").forEach(function(p) {
+                p.setAttribute("stroke-width", "1")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "purple")
+                p.setAttribute("fill", "purple")
+            })
+            document.querySelectorAll(`path.mmpoint._${id}`).forEach(function(p) {
+                p.setAttribute("stroke-width", "2")
+                p.setAttribute("stroke-opacity", "1")
+                p.setAttribute("stroke", "#ff8200")
+                p.setAttribute("fill", "yellow")
+            })
+            MAPVIEWER.mymap.flyTo([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 8)
+        }
     })
     eventSidebar.appendChild(entry)
 }

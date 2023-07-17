@@ -124,6 +124,11 @@
     background-color: rgba(0, 0, 0, 0.15);
 }
 
+#eventSidebar li[selected]{
+    text-decoration: underline;
+    background-color: yellow;
+}
+
 /* A weakness is the sidewise mobile phone, that map needs to be short! */
 /*
 @media only screen and (max-width: 770px) {
