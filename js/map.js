@@ -332,7 +332,7 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
         })
 
         // Sort the events by date
-        entityEvents = sortableEvents.toSorted(function(a,b){return new Date(a.date) - new Date(b.date)})
+        entityEvents = sortableEvents.toSorted(function(a,b){return new Date(a.date.value ?? a.date) - new Date(b.date.value ?? b.date)})
 
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
