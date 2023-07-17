@@ -323,8 +323,20 @@ MAPVIEWER.consumeForGeoJSON = async function(dataURL) {
             console.warn(err)
             return []
         })
+
+        // duplicate and modify range events
+        let sortableEvents = entityEvents.flatMap(item=>{
+            if(item.startDate) {
+                item.date = item.startDate
+            }
+            if(item.endDate) {
+                return [ item, Object.assign({...item}, {date:item.endDate})  ]
+            }
+            return item
+        })
+
         // Sort the events by date
-        entityEvents = entityEvents.sort(function(a,b){return new Date(a.date) - new Date(b.date)})
+        entityEvents = sortableEvents.toSorted(function(a,b){return new Date(a.date) - new Date(b.date)})
 
         // Make a flat array of all GeoJSON Features from the event.
         for await (const event of entityEvents){
@@ -645,7 +657,7 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
                 p.setAttribute("stroke", "#ff8200")
                 p.setAttribute("fill", "yellow")
             })
-            MAPVIEWER.mymap.flyTo([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 8)
+            MAPVIEWER.mymap.flyTo([geoPoint.geometry.coordinates[1], geoPoint.geometry.coordinates[0]], 15)
         }
     })
     eventSidebar.appendChild(entry)
