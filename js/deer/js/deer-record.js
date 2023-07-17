@@ -349,7 +349,7 @@ export default class DeerReport {
         }).bind(this))
             .then(entity => {
                 this.elem.setAttribute(DEER.ID, entity["@id"])
-                this.fillValues(this.inputs, new Map(Object.entries(entity)))
+                this.fillValues(new Map(Object.entries(entity)))
             }).catch(err=>console.warn(err))
     }
 
