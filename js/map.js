@@ -598,7 +598,6 @@ MAPVIEWER.httpsIdArray = function (id,justArray) {
 }
 
 MAPVIEWER.mintSidebarEntry = function(mmEvent){
-    // Get the Event from cache to make sure we have all the same information as the map.
     const uri = mmEvent["@id"] ?? mmEvent.id ?? ""
     const id = uri.split("/").pop()
     const geoPoint = MAPVIEWER.resourceMap.get(mmEvent.location)
@@ -610,7 +609,7 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent){
     entry.setAttribute("mmEvent", uri)
     entry.innerText = label
     entry.addEventListener("click", (e) => {
-        // The following can be used to alter the shape corresponding to the event ID.  Use it for animation is desired.
+        // The following can be used to alter the shape corresponding to the event ID.  See https://leafletjs.com/reference.html#path for options.
         // let animate = document.querySelector(`path.mmpoint._${id}`)
         // if(animate.getAttribute("stroke-width") === "15"){
         //     animate.setAttribute("stroke-width", "1")    
