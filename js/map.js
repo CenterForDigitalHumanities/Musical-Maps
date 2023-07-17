@@ -662,7 +662,7 @@ MAPVIEWER.mintSidebarEntry = function(mmEvent, geo){
                 geo = geo[0]
             }
             if(geo.geometry.type === "Point"){
-                MAPVIEWER.mymap.flyTo([geo.geometry.coordinates[1], geo.geometry.coordinates[0]], 8)    
+                MAPVIEWER.mymap.flyTo([geo.geometry.coordinates[1], geo.geometry.coordinates[0]], 10)    
             }
         }
     })
