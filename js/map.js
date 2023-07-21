@@ -57,15 +57,15 @@ MAPVIEWER.isJSON = function(obj) {
  * Get and combine the GeoJSON from the provided entities and props to match on.  Properties not listed in geoProps are ignored.
  * If you come across a referenced value, attempt to dereference it.  If successful, embed it to go forward with (so as not to resolve it again)
  * 
- * @param expandedEntities An array of JSON objects that have been expanded with their decriptive data.
+ * @param primitiveEntities An array of Event primitives from resulting 'presentAt' queries.  Each event is the body of a anno.body.presentAt
  * @param geoProps An array of properties to check for GeoJSON.
  * @param allPropertyInstances The array of GeoJSON objects to return.  It may contain GeoJSON already.
  * 
  * @return the array of Feature Collections and/or Features
  */
-MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allPropertyInstances = []) {
+MAPVIEWER.findAllFeatures = async function(primitiveEntities, geoProps, allPropertyInstances = []) {
     //Check against the limits first.  If we reached any, break all loops and recursion to return the results so far.
-    if(!expandedEntities){
+    if(!primitiveEntities){
         return []
     }
     if(MAPVIEWER.resourceCount > MAPVIEWER.resourceFindLimit){
@@ -74,15 +74,45 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
     }
     let resolved_uri = ""
     // For the eventuality that data is actually an array of data
-    if (!Array.isArray(expandedEntities)) {
-        expandedEntities = [expandedEntities]
+    if (!Array.isArray(primitiveEntities)) {
+        primitiveEntities = [primitiveEntities]
     }
-    // On each piece of expandedEntities, each array item in geoProps are the only properties that will contain a referenced or embedded GeoJSON object.
-    // Each piece of expandedEntities is a resolved and expanded Entity as JSON.  It will not contain child properties to recurse on.
-    for await (const data of expandedEntities){
+    const personURI = MAPVIEWER.getURLParameter("data") ? MAPVIEWER.getURLParameter("data") : ""
+    for await (const data of primitiveEntities){
         const uri = data["@id"] ?? data.id ?? ""
-        const t1 = data.type ?? data["@type"] ?? ""
-        const entityLabel = data.name ?? data.label ?? data.title ?? "No Entity Label"
+        const eventType = data.type ?? data["@type"] ?? ""
+        const eventLabel = data.name ?? data.label ?? data.title ?? "No Entity Label"
+        let eventLink = ""
+        // Note description has not been tracked as a primitive yet (7/21/23)
+        const eventDescription = data.description?.value ? data.description.value : data.description ?? ""
+        const date = data.date?.value ? data.date.value : data.date ?? ""        
+        const startDate = data.startDate?.value ? data.startDate.value : data.startDate ?? ""
+        const endDate = data.endDate?.value ? data.endDate.value : data.endDate ?? ""
+        switch(eventType){
+            case "Birth":
+                eventLink = `Birth.html#${personURI}`
+            break
+            case "Death":
+                eventLink = `Death.html#${personURI}`
+            break
+            case "mm:ResideEvent":
+                eventLink = `Residence.html#${personURI}`
+            break
+            case "mm:EmploymentEvent":
+                eventLink = `Employment.html#${personURI}`
+            break
+            case "mm:SchoolAttendanceEvent":
+                eventLink = `School.html#${personURI}`
+            break
+            case "Event":
+                eventLink = `Appearance.html#${personURI}`
+            break
+            case "MusicEvent":
+                eventLink = `Performance.html#${personURI}`
+            break
+            default:
+                console.warn("Dont know this event type "+eventType)
+        }
         MAPVIEWER.resourceCount += 1
         if(MAPVIEWER.resourceCount > MAPVIEWER.resourceFindLimit){
             console.warn(`geography lookup limit [${MAPVIEWER.resourceFindLimit}] reached`)
@@ -103,43 +133,64 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                 if(geo.indexOf("www.geonames.org")){
                     // Note it is likely a geonames URI like https://www.geonames.org/2761369/vienna.html
                     // Needs turned into https://secure.geonames.org/getJSON?geonameId=2761369&username=cubap&lang=en if so
-                    const segments = geo.split("/")
-                    const num = segments[segments.length-2]
                     const orig = geo
-                    const geoNamesUri = `https://secure.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
-                    geo = await fetch(geoNamesUri, {"cache":"default"})
-                    .then(resp => resp.json())
-                    .then(geoNamesJson => {
-                        // We need to turn this into a GeoJSON object
-                        // Other Event metadata to anticipate
-                            // https://schema.org/image
-                            // https://schema.org/url
-                        if(geoNamesJson.lng && geoNamesJson.lat){
-                            return {
+                    const segments = geo.split("/")
+                    let wiki_coords
+                    if(segments[segments.length - 1].includes("wikipedia")){
+                        wiki_coords = segments[segments.length-1].replace("wikipedia_", "").replace(".html","").split("_")
+                        wiki_coords = [wiki_coords[1], wiki_coords[0]]
+                        if(wiki_coords.length === 2){
+                            geo = 
+                            {
                                 "type" : "Feature",
                                 "geometry":{
                                     "type" : "Point",
-                                    "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
+                                    "coordinates" : wiki_coords
                                 },
                                 "properties" : {
-                                    "entity_label" : entityLabel,
-                                    "location_label": {
-                                        "en": [
-                                            `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
-                                        ]
-                                    }
+                                    "event_label" : eventLabel
                                 }
-                            }    
+                            }
                         }
-                        else{
-                            throw new Error(`Latitude and Longitude was missing from geonames data at '${orig}'`)
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err)
-                        return {}
-                    })
-
+                        wiki_coords = [wiki_coords[1], wiki_coords[0]]
+                        
+                    }
+                    else{
+                        const num = segments[segments.length-2]
+                        const geoNamesUri = `https://secure.geonames.org/getJSON?geonameId=${num}&username=cubap&lang=en`
+                        geo = await fetch(geoNamesUri, {"cache":"default"})
+                        .then(resp => resp.json())
+                        .then(geoNamesJson => {
+                            // We need to turn this into a GeoJSON object
+                            // Other Event metadata to anticipate
+                                // https://schema.org/image
+                                // https://schema.org/url
+                            if(geoNamesJson.lng && geoNamesJson.lat){
+                                return {
+                                    "type" : "Feature",
+                                    "geometry":{
+                                        "type" : "Point",
+                                        "coordinates" : [geoNamesJson.lng, geoNamesJson.lat]
+                                    },
+                                    "properties" : {
+                                        "event_label" : eventLabel,
+                                        "location_label": {
+                                            "en": [
+                                                `${geoNamesJson.countryName}, ${geoNamesJson.asciiName}`
+                                            ]
+                                        }
+                                    }
+                                }    
+                            }
+                            else{
+                                throw new Error(`Latitude and Longitude was missing from geonames data at '${orig}'`)
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err)
+                            return {}
+                        })    
+                    }
                     // Only if we ended up with a good Point Feature??
                     MAPVIEWER.resourceMap.set(orig, geo)    
                 }
@@ -179,7 +230,7 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                             //Then the id handed back a different object.  This is not good, somebody messed up their data
                             MAPVIEWER.resourceMap.set(resolved_uri, geo)
                         }  
-                        geo.__fromResource = t1
+                        geo.__fromResource = eventType
                         geo.__resourceURI = uri
                         allPropertyInstances.push(geo)
                     }
@@ -209,7 +260,13 @@ MAPVIEWER.findAllFeatures = async function(expandedEntities, geoProps, allProper
                     }
                 }
                 if(!geo.properties) geo.properties = {}
-                geo.properties.__fromResource = t1
+                if(eventDescription) geo.properties.description = eventDescription
+                if(eventLink) geo.properties.link = eventLink
+                if(date) geo.properties.date = date
+                // Note for now we can disregard startDate and endDate.  The date we need is always in the date property.
+                //if(startDate) geo.properties.startDate = startDate
+                //if(endDate) geo.properties.endDate = endDate
+                geo.properties.__fromResource = eventType
                 geo.properties.__resourceURI = uri
                 allPropertyInstances.push(geo)
             }
@@ -541,6 +598,7 @@ MAPVIEWER.initializeLeaflet = async function(coords, geoMarkers) {
                     if(ft === "LineString"){
                         // Make these dashed to imply 'travel'
                         options.dashArray = 4
+                        options.lineCap = "&#8250"
                     }
                     return options
                 }
@@ -562,8 +620,8 @@ MAPVIEWER.formatPopup = function(feature, layer) {
     let langs = []
     let stringToLangMap = {"none":[]}
     if (feature.properties){
-        if (feature.properties.entity_label) {
-            popupContent += `<div class="featureInfo"> ${feature.properties.entity_label} </div>`
+        if (feature.properties.event_label) {
+            popupContent += `<div class="featureInfo"> <a href="${feature.properties.link}">${feature.properties.event_label}</a> </div>`
         }
         if (feature.properties.location_label){
             //This should be a language map, but might be a string...
@@ -588,7 +646,14 @@ MAPVIEWER.formatPopup = function(feature, layer) {
                 }
                 popupContent += `</div>`    
             }
+        }
+        // Note that we are not processing startDate or endDate.  That value will be 'date'.
+        if (feature.properties.date){
+            popupContent += `<div class="featureInfo"> ${feature.properties.date} </div>`
         }   
+        if (feature.properties.description){
+            `<div class="featureInfo">  ${feature.properties.description} </div>`
+        }
         layer.bindPopup(popupContent)
     }
 }

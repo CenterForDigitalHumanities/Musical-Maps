@@ -15,6 +15,8 @@
        crossorigin=""></script>
     <script src="js/main.js" type="module"></script>
     <script src="js/deer/js/deer.js" type="module"></script>
+    <script src="js/geometryUtil.js"></script>
+    <script src="js/arrowheads.js"></script>
     <script src="js/map.js" type="module"></script>
     <script src="js/layout.js"></script>
     <title>Historical Musical Map</title>
@@ -55,7 +57,7 @@
     </div>
     <script>
         function loadURI(){
-            let url = resourceURI.value ? resourceURI.value : getURLParameter("iiif-content")
+            let url = resourceURI.value ? resourceURI.value : getURLParameter("data")
             if(url){
                 let contentState = "?data="+url
                 url = window.location.href.split('?')[0] + contentState
